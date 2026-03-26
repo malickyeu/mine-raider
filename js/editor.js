@@ -1,8 +1,9 @@
-/* ── editor.js ── grid-based map editor ── */
+/* ── editor.js ── grid-based map editor with tabbed UI ── */
 
-import { T, TILE_LABEL_KEYS, TILE_COLORS, WALL_TYPES, ENTITY_TYPES } from './config.js';
+import { T, TILE_LABEL_KEYS, TILE_COLORS, ENTITY_TYPES } from './config.js';
 import { loadMap, saveMap, createEmptyMap, createDefaultMap, getCampaignLevel, getCampaignLength } from './map.js';
 import { t } from './i18n.js';
+import { generateMap } from './mapgen.js';
 
 let canvas, ctx;
 let mapData;
@@ -10,27 +11,38 @@ let selectedTile = T.STONE;
 let cellSize = 24;
 let painting = false;
 let onPlay = null;
+let onBack = null;
 let panelEl = null;
+let activeTab = 'tiles';
 
-const ALL_TILES = [T.EMPTY, T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.SPIDER, T.GHOST, T.EXIT, T.TORCH, T.HEALTH];
+const PANEL_W = 224; // matches CSS width
 
-export function initEditor(canvasEl, panel, buttonsEl, playCallback) {
+const ALL_TILES = [
+    T.EMPTY, T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON,
+    T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.SPIDER, T.GHOST,
+    T.EXIT, T.TORCH, T.HEALTH, T.PILLAR,
+];
+
+// ════════════════════════════════════════
+//  Init
+// ════════════════════════════════════════
+
+export function initEditor(canvasEl, panel, _buttonsEl, playCallback, backCallback) {
     canvas = canvasEl;
-    ctx = canvas.getContext('2d');
+    ctx    = canvas.getContext('2d');
     onPlay = playCallback;
+    onBack = backCallback;
     panelEl = panel;
     mapData = loadMap();
 
-    buildPalette(panel);
-    buildButtons(buttonsEl);
+    buildPanel();
     resizeCanvas();
     drawGrid();
 
-    canvas.addEventListener('mousedown', e => { painting = true; paint(e); });
-    canvas.addEventListener('mousemove', e => { if (painting) paint(e); });
-    canvas.addEventListener('mouseup', () => painting = false);
+    canvas.addEventListener('mousedown',  e => { painting = true; paint(e); });
+    canvas.addEventListener('mousemove',  e => { if (painting) paint(e); });
+    canvas.addEventListener('mouseup',    () => painting = false);
     canvas.addEventListener('mouseleave', () => painting = false);
-
     canvas.addEventListener('contextmenu', e => {
         e.preventDefault();
         const { gx, gy } = getCellFromEvent(e);
@@ -41,18 +53,78 @@ export function initEditor(canvasEl, panel, buttonsEl, playCallback) {
     });
 }
 
-function buildPalette(panel) {
-    const existing = panel.querySelectorAll('.palette-header, .palette-item');
-    existing.forEach(el => el.remove());
+// ════════════════════════════════════════
+//  Panel builder
+// ════════════════════════════════════════
 
-    const h3 = document.createElement('h3');
-    h3.className = 'palette-header';
-    h3.textContent = t('palette');
-    panel.insertBefore(h3, panel.firstChild);
+function switchTab(id) {
+    activeTab = id;
+    panelEl.querySelectorAll('.ed-tab').forEach(b =>
+        b.classList.toggle('active', b.dataset.tab === id));
+    panelEl.querySelectorAll('.ed-tabcontent').forEach(c =>
+        c.classList.toggle('active', c.id === 'ed-tab-' + id));
+}
 
+function buildPanel() {
+    panelEl.innerHTML = '';
+
+    // ── Top action bar ──
+    const topbar = document.createElement('div');
+    topbar.id = 'ed-topbar';
+
+    const backBtn = document.createElement('button');
+    backBtn.id    = 'ed-back';
+    backBtn.textContent = t('edBack');
+    backBtn.onclick = () => { if (onBack) onBack(); };
+
+    const playBtn = document.createElement('button');
+    playBtn.id    = 'ed-play-top';
+    playBtn.className = 'play-btn';
+    playBtn.textContent = t('edPlay');
+    playBtn.onclick = handlePlay;
+
+    topbar.appendChild(backBtn);
+    topbar.appendChild(playBtn);
+    panelEl.appendChild(topbar);
+
+    // ── Tab bar ──
+    const tabBar = document.createElement('div');
+    tabBar.id = 'ed-tabs';
+    const TABS = [
+        { id: 'tiles', icon: '🎨', key: 'edTabTiles' },
+        { id: 'map',   icon: '🗺️', key: 'edTabMap'   },
+        { id: 'gen',   icon: '🎲', key: 'edTabGen'   },
+    ];
+    for (const tab of TABS) {
+        const btn = document.createElement('button');
+        btn.className  = 'ed-tab' + (activeTab === tab.id ? ' active' : '');
+        btn.dataset.tab = tab.id;
+        btn.innerHTML = `<span class="tab-icon">${tab.icon}</span><br><span class="tab-lbl">${t(tab.key)}</span>`;
+        btn.onclick = () => switchTab(tab.id);
+        tabBar.appendChild(btn);
+    }
+    panelEl.appendChild(tabBar);
+
+    // ── Tab content areas ──
+    buildTilesTab();
+    buildMapTab();
+    buildGenTab();
+}
+
+function makeTabContent(id) {
+    const div = document.createElement('div');
+    div.id = 'ed-tab-' + id;
+    div.className = 'ed-tabcontent' + (activeTab === id ? ' active' : '');
+    panelEl.appendChild(div);
+    return div;
+}
+
+// ── Tiles tab ──
+function buildTilesTab() {
+    const pane = makeTabContent('tiles');
     for (const tile of ALL_TILES) {
         const item = document.createElement('div');
-        item.className = 'palette-item' + (tile === selectedTile ? ' selected' : '');
+        item.className  = 'palette-item' + (tile === selectedTile ? ' selected' : '');
         item.dataset.tile = tile;
 
         const swatch = document.createElement('div');
@@ -64,43 +136,28 @@ function buildPalette(panel) {
 
         item.appendChild(swatch);
         item.appendChild(label);
-
         item.addEventListener('click', () => {
-            panel.querySelectorAll('.palette-item').forEach(i => i.classList.remove('selected'));
+            pane.querySelectorAll('.palette-item').forEach(i => i.classList.remove('selected'));
             item.classList.add('selected');
             selectedTile = Number(item.dataset.tile);
         });
-
-        const buttonsDiv = panel.querySelector('#editor-buttons');
-        panel.insertBefore(item, buttonsDiv);
+        pane.appendChild(item);
     }
 }
 
-function buildButtons(container) {
-    container.innerHTML = '';
+// ── Map tab ──
+function buildMapTab() {
+    const pane = makeTabContent('map');
 
-    const makeBtn = (text, cls, fn) => {
-        const b = document.createElement('button');
-        b.textContent = text;
-        if (cls) b.className = cls;
-        b.addEventListener('click', fn);
-        container.appendChild(b);
-        return b;
-    };
-
-    // Level selector
-    const levelWrap = document.createElement('div');
-    levelWrap.id = 'level-select-wrap';
-    const levelLabel = document.createElement('label');
-    levelLabel.textContent = t('edLevelSelect');
+    // Campaign level loader
+    const grpLoad = makeGroup(pane, t('edLevelSelect'));
     const levelSelect = document.createElement('select');
     levelSelect.id = 'level-select';
-
+    levelSelect.className = 'ed-select';
     const optCustom = document.createElement('option');
     optCustom.value = 'custom';
     optCustom.textContent = t('edCustomMap');
     levelSelect.appendChild(optCustom);
-
     for (let i = 0; i < getCampaignLength(); i++) {
         const lvl = getCampaignLevel(i);
         const opt = document.createElement('option');
@@ -108,103 +165,187 @@ function buildButtons(container) {
         opt.textContent = lvl.name;
         levelSelect.appendChild(opt);
     }
-
     levelSelect.addEventListener('change', () => {
         const val = levelSelect.value;
-        if (val === 'custom') {
-            mapData = loadMap();
-        } else {
-            const lvl = getCampaignLevel(parseInt(val));
-            if (lvl) mapData = JSON.parse(JSON.stringify(lvl));
-        }
+        mapData = val === 'custom'
+            ? loadMap()
+            : JSON.parse(JSON.stringify(getCampaignLevel(parseInt(val))));
         resizeCanvas();
         drawGrid();
     });
+    grpLoad.appendChild(levelSelect);
 
-    levelWrap.appendChild(levelLabel);
-    levelWrap.appendChild(levelSelect);
-    container.appendChild(levelWrap);
+    // Map size
+    const grpSize = makeGroup(pane, t('edMapSize'));
+    const sizeRow = document.createElement('div');
+    sizeRow.className = 'ed-size-row';
+    sizeRow.innerHTML = `
+        <label class="ed-small-lbl">${t('edWidth')}</label>
+        <input type="number" id="map-w" class="ed-num" min="8" max="64" value="${mapData.width}">
+        <label class="ed-small-lbl">${t('edHeight')}</label>
+        <input type="number" id="map-h" class="ed-num" min="8" max="64" value="${mapData.height}">
+    `;
+    grpSize.appendChild(sizeRow);
+    grpSize.appendChild(makeEdBtn(t('edResize'), '', () => {
+        const w = parseInt(document.getElementById('map-w').value) || 24;
+        const h = parseInt(document.getElementById('map-h').value) || 24;
+        mapData = createEmptyMap(Math.max(8, Math.min(64, w)), Math.max(8, Math.min(64, h)));
+        resizeCanvas(); drawGrid();
+    }));
 
-    makeBtn(t('edClear'), '', () => {
+    // File actions
+    const grpFile = makeGroup(pane, t('edFileActions'));
+    grpFile.appendChild(makeEdBtn(t('edSave'), '', () => {
+        saveMap(mapData);
+        showFlash(pane, t('edSaved'));
+    }));
+    grpFile.appendChild(makeEdBtn(t('edLoad'), '', () => {
+        mapData = loadMap(); resizeCanvas(); drawGrid();
+    }));
+    grpFile.appendChild(makeEdBtn(t('edDefault'), '', () => {
+        mapData = createDefaultMap(); resizeCanvas(); drawGrid();
+    }));
+    grpFile.appendChild(makeEdBtn(t('edClear'), 'danger-btn', () => {
         if (confirm(t('edConfirmClear'))) {
             mapData = createEmptyMap(mapData.width, mapData.height);
             drawGrid();
         }
-    });
-
-    makeBtn(t('edDefault'), '', () => {
-        mapData = createDefaultMap();
-        resizeCanvas();
-        drawGrid();
-    });
-
-    makeBtn(t('edSave'), '', () => {
-        saveMap(mapData);
-        alert(t('edSaved'));
-    });
-
-    makeBtn(t('edLoad'), '', () => {
-        mapData = loadMap();
-        resizeCanvas();
-        drawGrid();
-    });
-
-    const sizeDiv = document.createElement('div');
-    sizeDiv.id = 'map-size-controls';
-    sizeDiv.innerHTML = `
-        <label>${t('edWidth')}</label><input type="number" id="map-w" min="8" max="64" value="${mapData.width}">
-        <label>${t('edHeight')}</label><input type="number" id="map-h" min="8" max="64" value="${mapData.height}">
-        <button id="resize-btn">${t('edResize')}</button>
-    `;
-    container.appendChild(sizeDiv);
-
-    setTimeout(() => {
-        document.getElementById('resize-btn')?.addEventListener('click', () => {
-            const w = parseInt(document.getElementById('map-w').value) || 24;
-            const h = parseInt(document.getElementById('map-h').value) || 24;
-            mapData = createEmptyMap(Math.max(8, Math.min(64, w)), Math.max(8, Math.min(64, h)));
-            resizeCanvas();
-            drawGrid();
-        });
-    }, 0);
-
-    makeBtn(t('edPlay'), 'play-btn', () => {
-        let playerCount = 0, exitCount = 0;
-        for (let y = 0; y < mapData.height; y++)
-            for (let x = 0; x < mapData.width; x++) {
-                if (mapData.tiles[y][x] === T.PLAYER) playerCount++;
-                if (mapData.tiles[y][x] === T.EXIT) exitCount++;
-            }
-        if (playerCount === 0) { alert(t('edNoPlayer')); return; }
-        if (playerCount > 1) { alert(t('edMultiPlayer')); return; }
-        if (exitCount === 0) { alert(t('edNoExit')); return; }
-        saveMap(mapData);
-        if (onPlay) onPlay();
-    });
+    }));
 }
+
+// ── Generator tab ──
+function buildGenTab() {
+    const pane = makeTabContent('gen');
+
+    const grp = makeGroup(pane, t('edGenTitle'));
+    grp.innerHTML += `
+        <div class="gen-row">
+            <label class="ed-small-lbl">${t('edGenWall')}</label>
+            <select id="gen-wall" class="ed-select">
+                <option value="${T.STONE}">${t('edWallStone')}</option>
+                <option value="${T.MOSSY}">${t('edWallMossy')}</option>
+                <option value="${T.CRYSTAL}">${t('edWallCrystal')}</option>
+                <option value="${T.IRON}">${t('edWallIron')}</option>
+            </select>
+        </div>
+        <div class="gen-row">
+            <label class="ed-small-lbl">${t('edGenSize')}</label>
+            <select id="gen-size" class="ed-select">
+                <option value="16">${t('edGenSmall')}</option>
+                <option value="24" selected>${t('edGenMedium')}</option>
+                <option value="32">${t('edGenLarge')}</option>
+                <option value="48">${t('edGenXL')}</option>
+                <option value="64">${t('edGenHuge')}</option>
+                <option value="96">${t('edGenMassive')}</option>
+                <option value="128">${t('edGenEpic')}</option>
+            </select>
+        </div>
+        <div class="gen-row">
+            <label class="ed-small-lbl">${t('edGenDiff')}</label>
+            <select id="gen-diff" class="ed-select">
+                <option value="easy">${t('edDiffEasy')}</option>
+                <option value="normal" selected>${t('edDiffNormal')}</option>
+                <option value="hard">${t('edDiffHard')}</option>
+            </select>
+        </div>
+        <div class="gen-row">
+            <label class="ed-small-lbl">${t('edGenRooms')}</label>
+            <input type="number" id="gen-rooms" class="ed-num" min="4" max="60" value="8">
+        </div>
+    `;
+
+    pane.appendChild(makeEdBtn(t('edGenerate'), 'gen-btn', () => {
+        const wallType   = parseInt(document.getElementById('gen-wall').value);
+        const size       = parseInt(document.getElementById('gen-size').value);
+        const difficulty = document.getElementById('gen-diff').value;
+        const roomCount  = Math.max(4, Math.min(60, parseInt(document.getElementById('gen-rooms').value) || 8));
+        mapData = generateMap({ width: size, height: size, wallType, roomCount, difficulty });
+        resizeCanvas(); drawGrid();
+        showFlash(pane, t('edGenDone'));
+    }));
+}
+
+// ── UI helpers ──
+function makeGroup(parent, title) {
+    const wrap = document.createElement('div');
+    wrap.className = 'ed-group';
+    if (title) {
+        const h = document.createElement('div');
+        h.className = 'ed-group-title';
+        h.textContent = title;
+        wrap.appendChild(h);
+    }
+    parent.appendChild(wrap);
+    return wrap;
+}
+
+function makeEdBtn(text, cls, fn) {
+    const b = document.createElement('button');
+    b.textContent = text;
+    b.className = 'ed-btn' + (cls ? ' ' + cls : '');
+    b.addEventListener('click', fn);
+    return b;
+}
+
+function showFlash(parent, msg) {
+    const f = document.createElement('div');
+    f.className = 'ed-flash';
+    f.textContent = msg;
+    parent.appendChild(f);
+    setTimeout(() => f.remove(), 1800);
+}
+
+function handlePlay() {
+    let playerCount = 0, exitCount = 0;
+    for (let y = 0; y < mapData.height; y++)
+        for (let x = 0; x < mapData.width; x++) {
+            if (mapData.tiles[y][x] === T.PLAYER) playerCount++;
+            if (mapData.tiles[y][x] === T.EXIT)   exitCount++;
+        }
+    if (playerCount === 0) { alert(t('edNoPlayer'));   return; }
+    if (playerCount > 1)   { alert(t('edMultiPlayer')); return; }
+    if (exitCount === 0)   { alert(t('edNoExit'));      return; }
+    saveMap(mapData);
+    if (onPlay) onPlay();
+}
+
+// ════════════════════════════════════════
+//  Public API
+// ════════════════════════════════════════
 
 export function rebuildEditorUI() {
     if (!panelEl) return;
-    buildPalette(panelEl);
-    const buttonsEl = document.getElementById('editor-buttons');
-    if (buttonsEl) buildButtons(buttonsEl);
+    buildPanel();
 }
 
+export function showEditor() {
+    mapData = loadMap();
+    resizeCanvas();
+    drawGrid();
+}
+
+// ════════════════════════════════════════
+//  Canvas helpers
+// ════════════════════════════════════════
+
 function resizeCanvas() {
-    const maxW = window.innerWidth - 220;
-    const maxH = window.innerHeight - 20;
-    cellSize = Math.max(8, Math.min(32, Math.floor(Math.min(maxW / mapData.width, maxH / mapData.height))));
-    canvas.width = mapData.width * cellSize;
+    const maxW = window.innerWidth  - PANEL_W - 6;
+    const maxH = window.innerHeight - 10;
+    cellSize = Math.max(8, Math.min(32, Math.floor(
+        Math.min(maxW / mapData.width, maxH / mapData.height)
+    )));
+    canvas.width  = mapData.width  * cellSize;
     canvas.height = mapData.height * cellSize;
 }
 
 function getCellFromEvent(e) {
     const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    const sx = canvas.width / rect.width;
+    const sx = canvas.width  / rect.width;
     const sy = canvas.height / rect.height;
-    return { gx: Math.floor(mx * sx / cellSize), gy: Math.floor(my * sy / cellSize) };
+    return {
+        gx: Math.floor((e.clientX - rect.left) * sx / cellSize),
+        gy: Math.floor((e.clientY - rect.top)  * sy / cellSize),
+    };
 }
 
 function paint(e) {
@@ -221,32 +362,25 @@ function paint(e) {
 
 function drawGrid() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const icons = {
+        [T.PLAYER]:   '🧑', [T.GOLD]:     '💰', [T.GEM]:   '💎',
+        [T.BAT]:      '🦇', [T.SKELETON]: '💀', [T.SPIDER]:'🕷️',
+        [T.GHOST]:    '👻', [T.EXIT]:      '🚪', [T.TORCH]: '🔥',
+        [T.HEALTH]:   '❤️', [T.PILLAR]:   '🪨',
+    };
     for (let y = 0; y < mapData.height; y++) {
         for (let x = 0; x < mapData.width; x++) {
             const tile = mapData.tiles[y][x];
             ctx.fillStyle = TILE_COLORS[tile] || '#1a1a1a';
             ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.strokeStyle = 'rgba(255,255,255,0.07)';
             ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
-            if (ENTITY_TYPES.has(tile)) {
-                ctx.fillStyle = '#fff';
+            if (ENTITY_TYPES.has(tile) && icons[tile]) {
                 ctx.font = `${Math.max(10, cellSize - 6)}px sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                const icons = {
-                    [T.PLAYER]: '🧑', [T.GOLD]: '💰', [T.GEM]: '💎',
-                    [T.BAT]: '🦇', [T.SKELETON]: '💀', [T.SPIDER]: '🕷️',
-                    [T.GHOST]: '👻', [T.EXIT]: '🚪', [T.TORCH]: '🔥',
-                    [T.HEALTH]: '❤️', [T.PILLAR]: '🪨',
-                };
-                ctx.fillText(icons[tile] || '?', x * cellSize + cellSize / 2, y * cellSize + cellSize / 2);
+                ctx.fillText(icons[tile], x * cellSize + cellSize / 2, y * cellSize + cellSize / 2);
             }
         }
     }
-}
-
-export function showEditor() {
-    mapData = loadMap();
-    resizeCanvas();
-    drawGrid();
 }

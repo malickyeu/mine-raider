@@ -56,6 +56,44 @@ const translations = {
         edMultiPlayer:  'Může být jen 1 pozice hráče!',
         edNoExit:       'Umísti alespoň 1 východ!',
 
+        // Editor tabs & UI
+        edBack:         '← Menu',
+        edTabTiles:     'Dlaždice',
+        edTabMap:       'Mapa',
+        edTabGen:       'Generátor',
+        edMapSize:      'Rozměry:',
+        edFileActions:  'Soubor:',
+        edGenDone:      '✓ Mapa vygenerována!',
+
+        // Map generator
+        edGenTitle:     '🎲 Generátor map',
+        edGenerate:     '🎲 Generovat!',
+        edGenWall:      'Zdi:',
+        edGenDiff:      'Obtížnost:',
+        edGenRooms:     'Místnosti:',
+        edGenSize:      'Velikost:',
+        edGenSmall:     'Malá (16×16)',
+        edGenMedium:    'Střední (24×24)',
+        edGenLarge:     'Velká (32×32)',
+        edGenXL:        'XL (48×48)',
+        edGenHuge:      'Obří (64×64)',
+        edGenMassive:   'Masivní (96×96)',
+        edGenEpic:      'Epická (128×128)',
+        edDiffEasy:     'Lehká',
+        edDiffNormal:   'Střední',
+        edDiffHard:     'Těžká',
+        edWallStone:    'Kámen',
+        edWallMossy:    'Mech',
+        edWallCrystal:  'Krystal',
+        edWallIron:     'Železo',
+
+        // Level names (used in HUD via nameKey)
+        level1Name:     'Úroveň 1 – Opuštěný důl',
+        level2Name:     'Úroveň 2 – Zarostlé šachty',
+        level3Name:     'Úroveň 3 – Krystalové jeskyně',
+        level4Name:     'Úroveň 4 – Hluboké štoly',
+        level5Name:     'Úroveň 5 – Prokleté hlubiny',
+
         // Tile labels
         tEmpty:    'Prázdno',   tStone:    'Kámen',
         tWood:     'Dřevo',     tOre:      'Ruda',
@@ -65,7 +103,7 @@ const translations = {
         tBat:      'Netopýr',   tSkeleton: 'Kostlivec',
         tExit:     'Východ',    tTorch:    'Pochodeň',
         tHealth:   'Zdraví',    tSpider:   'Pavouk',
-        tGhost:    'Duch',
+        tGhost:    'Duch',      tPillar:   'Pilíř',
     },
 
     en: {
@@ -116,6 +154,37 @@ const translations = {
         edNoPlayer:     'Place the player start position!',
         edMultiPlayer:  'Only 1 player position allowed!',
         edNoExit:       'Place at least 1 exit!',
+
+        // Editor tabs & UI
+        edBack:         '← Menu',
+        edTabTiles:     'Tiles',
+        edTabMap:       'Map',
+        edTabGen:       'Generator',
+        edMapSize:      'Dimensions:',
+        edFileActions:  'File:',
+        edGenDone:      '✓ Map generated!',
+
+        // Map generator
+        edGenTitle:     '🎲 Map Generator',
+        edGenerate:     '🎲 Generate!',
+        edGenWall:      'Walls:',
+        edGenDiff:      'Difficulty:',
+        edGenRooms:     'Rooms:',
+        edGenSize:      'Size:',
+        edGenSmall:     'Small (16×16)',
+        edGenMedium:    'Medium (24×24)',
+        edGenLarge:     'Large (32×32)',
+        edGenXL:        'XL (48×48)',
+        edGenHuge:      'Huge (64×64)',
+        edGenMassive:   'Massive (96×96)',
+        edGenEpic:      'Epic (128×128)',
+        edDiffEasy:     'Easy',
+        edDiffNormal:   'Normal',
+        edDiffHard:     'Hard',
+        edWallStone:    'Stone',
+        edWallMossy:    'Mossy',
+        edWallCrystal:  'Crystal',
+        edWallIron:     'Iron',
 
         tEmpty:    'Empty',     tStone:    'Stone',
         tWood:     'Wood',      tOre:      'Ore',

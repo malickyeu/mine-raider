@@ -51,6 +51,8 @@ initRenderer(gameCanvas);
 initEditor(editorCanvas, editorPanel, editorButtons, () => {
     gameMode = 'custom';
     switchState('game');
+}, () => {
+    switchState('menu');
 });
 
 // ── Refresh all UI text for current language ──
@@ -105,7 +107,8 @@ let hKeyWasDown = false;
 window.addEventListener('keydown', e => {
     if (e.code === 'Escape') {
         if (isHelpVisible()) { hideHelp(); return; }
-        if (state === 'game') { releasePointer(); switchState('menu'); }
+        if (state === 'game')   { releasePointer(); switchState('menu'); }
+        if (state === 'editor') { switchState('menu'); }
     }
     if (e.code === 'KeyM' && state === 'game' && !mKeyWasDown) {
         mKeyWasDown = true;
@@ -134,6 +137,8 @@ function switchState(newState) {
         case 'menu':
             menuScreen.style.display = 'flex';
             releasePointer();
+            // Reset player so next game always starts with full HP & zero score
+            player = null;
             break;
         case 'editor':
             editorScreen.classList.add('active');

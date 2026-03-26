@@ -17,7 +17,6 @@ const gameCanvas    = document.getElementById('game-canvas');
 const editorScreen  = document.getElementById('editor-screen');
 const editorCanvas  = document.getElementById('editor-canvas');
 const editorPanel   = document.getElementById('editor-panel');
-const editorButtons = document.getElementById('editor-buttons');
 const overlay       = document.getElementById('overlay');
 const overlayTitle  = document.getElementById('overlay-title');
 const overlayText   = document.getElementById('overlay-text');
@@ -48,7 +47,7 @@ let breakableWalls = {};
 // ── Init ──
 initInput(gameCanvas);
 initRenderer(gameCanvas);
-initEditor(editorCanvas, editorPanel, editorButtons, () => {
+initEditor(editorCanvas, editorPanel, null, () => {
     gameMode = 'custom';
     switchState('game');
 }, () => {

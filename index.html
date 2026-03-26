@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⛏️ Mine Raider – Poklad starých dolů</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- ── Menu ── -->
+    <div id="menu-screen">
+        <h1>⛏️ Mine Raider</h1>
+        <h2 id="menu-subtitle">Poklad starých dolů</h2>
+        <button id="btn-play">▶ Hrát</button>
+        <button id="btn-editor">🗺️ Editor map</button>
+        <button id="btn-lang">🌐 English</button>
+    </div>
+
+    <!-- ── Game canvas ── -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- ── Help overlay ── -->
+    <div id="help-overlay">
+        <h1 id="help-title">📖 Ovládání</h1>
+        <div id="help-lines"></div>
+        <p id="help-close">Stiskni H pro zavření</p>
+    </div>
+
+    <!-- ── Game over / win overlay ── -->
+    <div id="overlay">
+        <h1 id="overlay-title"></h1>
+        <p id="overlay-text"></p>
+        <button id="overlay-btn">Zpět do menu</button>
+    </div>
+
+    <!-- ── Map Editor ── -->
+    <div id="editor-screen">
+        <div id="editor-panel">
+            <!-- palette built by JS -->
+            <div id="editor-buttons"></div>
+        </div>
+        <div id="editor-canvas-wrap">
+            <canvas id="editor-canvas"></canvas>
+        </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

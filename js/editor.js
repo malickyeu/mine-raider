@@ -17,10 +17,27 @@ let activeTab = 'tiles';
 
 const PANEL_W = 224; // matches CSS width
 
-const ALL_TILES = [
-    T.EMPTY, T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.DOOR, T.DOOR_RED, T.DOOR_BLUE,
-    T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.SPIDER, T.GHOST,
-    T.EXIT, T.TORCH, T.HEALTH, T.HEALTH_SMALL, T.PILLAR, T.KEY_RED, T.KEY_BLUE, T.FLASHLIGHT,
+const TILE_ICONS = {
+    [T.PLAYER]:       '🧑',
+    [T.GOLD]:         '💰', [T.GEM]:          '💎',
+    [T.BAT]:          '🦇', [T.SKELETON]:     '💀',
+    [T.SPIDER]:       '🕷️', [T.GHOST]:        '👻',
+    [T.EXIT]:         '🚪', [T.TORCH]:        '🔥',
+    [T.HEALTH]:       '❤️', [T.HEALTH_SMALL]: '🩹',
+    [T.PILLAR]:       '🪨',
+    [T.DOOR]:         '🚪', [T.KEY_RED]:      '🔑',
+    [T.KEY_BLUE]:     '🔑', [T.DOOR_RED]:     '🔒',
+    [T.DOOR_BLUE]:    '🔒', [T.FLASHLIGHT]:   '🔦',
+};
+
+const TILE_GROUPS = [
+    { key: 'edGroupEmpty',    tiles: [T.EMPTY] },
+    { key: 'edGroupEnv',      tiles: [T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON,
+                                       T.DOOR, T.DOOR_RED, T.DOOR_BLUE, T.PILLAR] },
+    { key: 'edGroupEquip',    tiles: [T.PLAYER, T.EXIT, T.TORCH] },
+    { key: 'edGroupCollect',  tiles: [T.GOLD, T.GEM, T.KEY_RED, T.KEY_BLUE,
+                                       T.FLASHLIGHT, T.HEALTH, T.HEALTH_SMALL] },
+    { key: 'edGroupEnemies',  tiles: [T.BAT, T.SKELETON, T.SPIDER, T.GHOST] },
 ];
 
 // ════════════════════════════════════════
@@ -120,28 +137,93 @@ function makeTabContent(id) {
 }
 
 // ── Tiles tab ──
+let _tooltipEl   = null;
+let _selCellEl   = null;
+
+function getTileDescKey(tile) {
+    const lk = TILE_LABEL_KEYS[tile];
+    if (!lk || lk.length < 2) return null;
+    return 'tDesc' + lk.charAt(1).toUpperCase() + lk.slice(2);
+}
+
+function ensureTooltip() {
+    if (_tooltipEl) return;
+    _tooltipEl = document.createElement('div');
+    _tooltipEl.id = 'ed-tile-tooltip';
+    _tooltipEl.style.display = 'none';
+    document.body.appendChild(_tooltipEl);
+}
+
+function showTileTooltip(tile, e) {
+    ensureTooltip();
+    const name    = t(TILE_LABEL_KEYS[tile] || '');
+    const descKey = getTileDescKey(tile);
+    const desc    = descKey ? t(descKey) : '';
+    const showDesc = desc && desc !== descKey;
+    _tooltipEl.innerHTML =
+        `<div class="tooltip-name">${name}</div>` +
+        (showDesc ? `<div class="tooltip-desc">${desc}</div>` : '');
+    _tooltipEl.style.display = 'block';
+    moveTileTooltip(e);
+}
+
+function moveTileTooltip(e) {
+    if (!_tooltipEl || _tooltipEl.style.display === 'none') return;
+    const ttW = _tooltipEl.offsetWidth  || 190;
+    const ttH = _tooltipEl.offsetHeight || 60;
+    let left = e.clientX + 16;
+    if (left + ttW > window.innerWidth - 8) left = e.clientX - ttW - 8;
+    const top = Math.max(8, Math.min(window.innerHeight - ttH - 8, e.clientY - Math.floor(ttH / 2)));
+    _tooltipEl.style.left = left + 'px';
+    _tooltipEl.style.top  = top  + 'px';
+}
+
+function hideTileTooltip() {
+    if (_tooltipEl) _tooltipEl.style.display = 'none';
+}
+
 function buildTilesTab() {
     const pane = makeTabContent('tiles');
-    for (const tile of ALL_TILES) {
-        const item = document.createElement('div');
-        item.className  = 'palette-item' + (tile === selectedTile ? ' selected' : '');
-        item.dataset.tile = tile;
+    _selCellEl = null;
 
-        const swatch = document.createElement('div');
-        swatch.className = 'palette-swatch';
-        swatch.style.background = TILE_COLORS[tile];
+    for (const group of TILE_GROUPS) {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'palette-group';
 
-        const label = document.createElement('span');
-        label.textContent = t(TILE_LABEL_KEYS[tile]);
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'palette-group-title';
+        titleDiv.textContent = t(group.key);
+        groupDiv.appendChild(titleDiv);
 
-        item.appendChild(swatch);
-        item.appendChild(label);
-        item.addEventListener('click', () => {
-            pane.querySelectorAll('.palette-item').forEach(i => i.classList.remove('selected'));
-            item.classList.add('selected');
-            selectedTile = Number(item.dataset.tile);
-        });
-        pane.appendChild(item);
+        const grid = document.createElement('div');
+        grid.className = 'palette-icon-grid';
+
+        for (const tile of group.tiles) {
+            const cell = document.createElement('div');
+            cell.className = 'palette-cell' + (tile === selectedTile ? ' selected' : '');
+            cell.dataset.tile = String(tile);
+            cell.style.background = TILE_COLORS[tile] || '#1a1a1a';
+
+            const icon = TILE_ICONS[tile];
+            if (icon) cell.textContent = icon;
+
+            if (tile === selectedTile) _selCellEl = cell;
+
+            cell.addEventListener('click', () => {
+                if (_selCellEl) _selCellEl.classList.remove('selected');
+                cell.classList.add('selected');
+                _selCellEl = cell;
+                selectedTile = tile;
+            });
+            cell.addEventListener('mouseenter', e => showTileTooltip(tile, e));
+            cell.addEventListener('mousemove',  e => moveTileTooltip(e));
+            cell.addEventListener('mouseleave', hideTileTooltip);
+
+            grid.appendChild(cell);
+        }
+
+        groupDiv.appendChild(grid);
+        pane.appendChild(groupDiv);
     }
 }
 
@@ -397,14 +479,6 @@ function paint(e) {
 
 function drawGrid() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const icons = {
-        [T.PLAYER]:   '🧑', [T.GOLD]:     '💰', [T.GEM]:   '💎',
-        [T.BAT]:      '🦇', [T.SKELETON]: '💀', [T.SPIDER]:'🕷️',
-        [T.GHOST]:    '👻', [T.EXIT]:      '🚪', [T.TORCH]: '🔥',
-        [T.HEALTH]:   '❤️', [T.HEALTH_SMALL]: '🩹', [T.PILLAR]: '🪨',
-        [T.DOOR]:     '🚪', [T.KEY_RED]:  '🔑', [T.KEY_BLUE]: '🔑',
-        [T.DOOR_RED]: '🔒', [T.DOOR_BLUE]: '🔒',
-    };
     for (let y = 0; y < mapData.height; y++) {
         for (let x = 0; x < mapData.width; x++) {
             const tile = mapData.tiles[y][x];
@@ -412,11 +486,12 @@ function drawGrid() {
             ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
             ctx.strokeStyle = 'rgba(255,255,255,0.07)';
             ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
-            if (icons[tile]) {
+            const icon = TILE_ICONS[tile];
+            if (icon) {
                 ctx.font = `${Math.max(10, cellSize - 6)}px sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(icons[tile], x * cellSize + cellSize / 2, y * cellSize + cellSize / 2);
+                ctx.fillText(icon, x * cellSize + cellSize / 2, y * cellSize + cellSize / 2);
             }
         }
     }

@@ -25,7 +25,7 @@ export class Player {
         this.shakeTimer = 0;
     }
 
-    update(dt, mapData) {
+    update(dt, mapData, doorStates) {
         // ── Input snapshot (computed once, used by sprint + movement + rotation) ──
         const wantSprint = isDown('ShiftLeft') || isDown('ShiftRight');
         const wantsMove  = isDown('KeyW') || isDown('ArrowUp')
@@ -80,7 +80,7 @@ export class Player {
             this.bobPhase += dt * 10 * speedMult;
         }
 
-        const result = moveWithCollision(mapData, this.x, this.y, moveX, moveY);
+        const result = moveWithCollision(mapData, this.x, this.y, moveX, moveY, undefined, doorStates);
         this.x = result.x;
         this.y = result.y;
 

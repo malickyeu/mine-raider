@@ -54,13 +54,6 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
     const texSize = getTextureSize();
 
     const drawColumn = (col, dist, tileType, texX, side, mx, my) => {
-        // ── Door: offset texture by open amount, skip if fully open ──
-        const doorKey = `${mx},${my}`;
-        const ds = doorStates[doorKey];
-        if (tileType === T.DOOR && ds) {
-            texX = texX - ds.open;         // slide texture
-            if (texX < 0) return;          // part of door that has slid away
-        }
 
         const lineHeight = SCREEN_H / dist;
         const drawStart = Math.floor((SCREEN_H - lineHeight) / 2);
@@ -102,7 +95,7 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
         }
     };
 
-    const depthBuffer = castRays(mapData, player.x, player.y, player.angle, drawColumn);
+    const depthBuffer = castRays(mapData, player.x, player.y, player.angle, drawColumn, doorStates);
 
     // ── Sprites ──
     renderSprites(ctx, entities, player, depthBuffer);

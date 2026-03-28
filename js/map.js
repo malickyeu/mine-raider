@@ -254,9 +254,14 @@ export function extractEntities(mapData) {
     return { entities, playerStart };
 }
 
-export function isWall(mapData, gx, gy) {
+export function isWall(mapData, gx, gy, doorStates) {
     if (gx < 0 || gy < 0 || gx >= mapData.width || gy >= mapData.height) return true;
-    return WALL_TYPES.has(mapData.tiles[gy][gx]);
+    const tile = mapData.tiles[gy][gx];
+    if (tile === T.DOOR && doorStates) {
+        const ds = doorStates[`${gx},${gy}`];
+        if (ds && ds.open >= 0.9) return false; // open door is passable
+    }
+    return WALL_TYPES.has(tile);
 }
 
 export function getTile(mapData, gx, gy) {

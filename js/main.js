@@ -141,7 +141,10 @@ window.addEventListener('keydown', e => {
     if (e.code === 'Escape') {
         if (isHelpVisible()) { hideHelp(); return; }
         if (state === 'difficulty') { switchState('menu'); return; }
-        if (state === 'game')   { releasePointer(); switchState('menu'); }
+        if (state === 'game') {
+            releasePointer();
+            switchState(gameMode === 'custom' ? 'editor' : 'menu');
+        }
         if (state === 'editor') { switchState('menu'); }
     }
     if (e.code === 'KeyM' && state === 'game' && !mKeyWasDown) {
@@ -266,6 +269,16 @@ function getEnemyScore(type) {
     }
 }
 
+function isEntityInTile(tx, ty) {
+    // Check if player or any enemy is inside this tile
+    if (Math.floor(player.x) === tx && Math.floor(player.y) === ty) return true;
+    for (const ent of entities) {
+        if (ent instanceof Enemy && ent.alive &&
+            Math.floor(ent.x) === tx && Math.floor(ent.y) === ty) return true;
+    }
+    return false;
+}
+
 function gameLoop(now) {
     if (state !== 'game') return;
     const dt = Math.min(0.05, (now - lastTime) / 1000);
@@ -273,9 +286,9 @@ function gameLoop(now) {
 
     // Don't update game while help is open
     if (!isHelpVisible()) {
-        player.update(dt, mapData);
+        player.update(dt, mapData, doorStates);
 
-        // ── Open doors (E key) ──
+        // ── Open/close doors (E key) ──
         if (isDown('KeyE')) {
             const cosA = Math.cos(player.angle);
             const sinA = Math.sin(player.angle);
@@ -284,8 +297,15 @@ function gameLoop(now) {
                 const dy = Math.floor(player.y + sinA * d);
                 if (getTile(mapData, dx, dy) === T.DOOR) {
                     const key = `${dx},${dy}`;
-                    if (!doorStates[key]) {
-                        doorStates[key] = { open: 0, opening: true };
+                    const ds = doorStates[key];
+                    if (!ds) {
+                        doorStates[key] = { open: 0, opening: true, closeTimer: 0 };
+                        sfxDoorOpen();
+                    } else if (ds.open >= 1 && !ds.closing) {
+                        // Manual close
+                        ds.opening = false;
+                        ds.closing = true;
+                        ds.closeTimer = 0;
                         sfxDoorOpen();
                     }
                     break;
@@ -297,11 +317,25 @@ function gameLoop(now) {
         for (const key in doorStates) {
             const ds = doorStates[key];
             if (ds.opening && ds.open < 1) {
-                ds.open = Math.min(1, ds.open + dt * 2); // ~0.5 s to fully open
+                ds.open = Math.min(1, ds.open + dt * 2);
                 if (ds.open >= 1) {
-                    // Remove wall from map so player/enemies can walk through
-                    const [wx, wy] = key.split(',').map(Number);
-                    mapData.tiles[wy][wx] = T.EMPTY;
+                    ds.opening = false;
+                    ds.closeTimer = 3; // auto-close after 3 s
+                }
+            } else if (ds.open >= 1 && ds.closeTimer > 0 && !ds.closing) {
+                ds.closeTimer -= dt;
+                if (ds.closeTimer <= 0) {
+                    ds.closing = true;
+                }
+            } else if (ds.closing) {
+                // Check nobody is standing in the door tile before closing
+                const [wx, wy] = key.split(',').map(Number);
+                const blocked = isEntityInTile(wx, wy);
+                if (!blocked) {
+                    ds.open = Math.max(0, ds.open - dt * 2);
+                    if (ds.open <= 0) {
+                        delete doorStates[key]; // fully closed, back to normal wall
+                    }
                 }
             }
         }

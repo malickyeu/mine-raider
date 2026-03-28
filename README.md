@@ -83,7 +83,7 @@ npm run dev
 | 1 | Abandoned Mine | 20×20 | Basics – bats, gold, wood beams |
 | 2 | Overgrown Shafts | 24×24 | Mossy stone walls, spiders |
 | 3 | Crystal Caves | 24×24 | Crystal & iron walls, ghosts |
-| 4 | Deep Tunnels | 28×28 | All wall types, mixed enemies |
+| 4 | Deep Tunnels | 28×28 | All wall types, mixed enemies, **red & blue locked doors + keys** |
 | 5 | Cursed Depths | 30×30 | Maximum difficulty, all enemy types |
 
 Score and HP carry over between levels. Find the **green exit door 🚪** to advance.
@@ -101,6 +101,21 @@ Score and HP carry over between levels. Find the **green exit door 🚪** to adv
 This mechanic unlocks hidden areas and shortcuts in every level.
 
 > **Note:** Wooden walls directly adjacent to a door cannot be broken — they serve as structural supports for the door frame.
+
+---
+
+## 🗝️ Keys & Locked Doors
+
+Some corridors are sealed by **coloured locked doors** — red 🔴 or blue 🔵. They look like regular doors but display a lock icon and require a matching key to open.
+
+1. Find the **red key** 🔑 or **blue key** 🔑 somewhere in the level
+2. Walk up to the matching locked door and press `F`
+3. The door unlocks permanently and opens like a regular door — it can be closed and re-opened freely afterwards
+
+**HUD:** Collected keys appear as small coloured icons next to your score.  
+**Minimap:** Locked doors are shown in their matching colour (red / blue) even after being unlocked.
+
+> In generated maps (editor generator), the BFS connectivity algorithm guarantees that a key is **always reachable** without having to pass through its own locked door first.
 
 ---
 
@@ -160,7 +175,7 @@ action-game/
     ├── renderer.js      ← Frame orchestration (ceiling, floor, walls, sprites, HUD)
     ├── textures.js      ← Procedural wall textures + billboard sprites
     ├── sprites.js       ← Sprite sorting, depth clipping, billboard rendering
-    ├── entities.js      ← Player, Enemy, Treasure, Pillar, Exit, Torch, HealthPack
+    ├── entities.js      ← Player, Enemy, Treasure, Pillar, Exit, Torch, HealthPack, KeyItem
     ├── collision.js     ← AABB grid collision with wall sliding
     ├── input.js         ← Keyboard state + pointer-lock mouse delta
     ├── hud.js           ← Health bar, score, minimap, level name, help overlay
@@ -178,6 +193,7 @@ action-game/
 - **Sprite rendering** uses painter's algorithm (sorted by distance), depth-buffer clipped against the wall depth buffer
 - **Breakable walls** track remaining HP in a `Map` keyed by tile coordinates; damage is visualised as a darkening overlay on each wall column
 - **Doors** are Wolf3D-style thin walls rendered at tile centre via multi-plane intersection in the raycaster (centre plane + frame AABBs); door open/close state is tracked per tile with auto-close timer
+- **Locked doors** (`T.DOOR_RED`, `T.DOOR_BLUE`) keep their tile type permanently — an `unlocked` flag in `doorStates` records the first successful key use; the coloured texture and minimap colour are always preserved
 - **Head bob & screen shake** apply Y / XY canvas translation before rendering; HUD is drawn after `ctx.restore()` so it remains stable
 - **Ghost enemy** skips collision checks and always has line-of-sight, making it the most dangerous enemy type
 

@@ -1,7 +1,7 @@
 # ⛏️ Mine Raider – Roadmap
 
 > Živý dokument sledující plánované funkce a nápady pro další rozvoj hry.  
-> Poslední aktualizace: **2026-03-28** · verze **0.3.0** · 16 features (4 hotovo, 12 zbývá)
+> Poslední aktualizace: **2026-03-28** · verze **0.3.0** · 16 features (5 hotovo, 11 zbývá)
 
 ---
 
@@ -26,6 +26,7 @@
 - [x] Otevíratelné dveře (`T.DOOR`, klávesa `F`, 3D zárubně, thin-door raycasting, auto-close po 3 s)
 - [x] Malá lékárnička (`T.HEALTH_SMALL`, +15 HP)
 - [x] Dřevo sousedící s dveřmi nelze rozbít
+- [x] Klíče a zamčené dveře (`T.KEY_RED`, `T.KEY_BLUE`, `T.DOOR_RED`, `T.DOOR_BLUE`) — 2 barvy, BFS-safe generátor, HUD ikonky klíčů, minimap barevné rozlišení
 
 ---
 
@@ -36,10 +37,10 @@
 - Hráč má omezenou svítilnu/lucernu s baterií — ta se vybíjí a dobíjí se u pochodeň-triggerů
 - Vzdálenější části mapy jsou výrazněji tmavé
 
-### 2. 🗝️ Klíče a zamčené dveře
-- Nový tile: **Key** (žlutý, červený, modrý) + **Locked Door** odpovídající barvy
-- Klíč se sebere průchodem, dveře se odemknou automaticky při kontaktu
-- Map editor: klíče a dveře v paletě, editor varuje pokud klíč nemá odpovídající dveře
+### ~~2. 🗝️ Klíče a zamčené dveře~~ ✅ Hotovo
+- ~~Nový tile: **Key** (žlutý, červený, modrý) + **Locked Door** odpovídající barvy~~
+- ~~Klíč se sebere průchodem, dveře se odemknou automaticky při kontaktu~~
+- ~~Map editor: klíče a dveře v paletě, editor varuje pokud klíč nemá odpovídající dveře~~
 
 ### 3. 💣 Výbušné sudy
 - Nový sprite: **Barrel** — výbuch při trefu pickaxem nebo při průchodu nepřítelem
@@ -128,7 +129,7 @@ Sprint 1 (rychlé výhry):
   → ✅ #14 Sprint + Stamina    (hotovo)
 
 Sprint 2 (gameplay hloubka):
-  → #2  Klíče & dveře
+  → ✅ #2  Klíče & dveře        (hotovo)
   → ✅ #12 Otevíratelné dveře    (hotovo)
   → #3  Výbušné sudy
   → #4  Pasti

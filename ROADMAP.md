@@ -37,11 +37,6 @@
 - Hráč má omezenou svítilnu/lucernu s baterií — ta se vybíjí a dobíjí se u pochodeň-triggerů
 - Vzdálenější části mapy jsou výrazněji tmavé
 
-### ~~2. 🗝️ Klíče a zamčené dveře~~ ✅ Hotovo
-- ~~Nový tile: **Key** (žlutý, červený, modrý) + **Locked Door** odpovídající barvy~~
-- ~~Klíč se sebere průchodem, dveře se odemknou automaticky při kontaktu~~
-- ~~Map editor: klíče a dveře v paletě, editor varuje pokud klíč nemá odpovídající dveře~~
-
 ### 3. 💣 Výbušné sudy
 - Nový sprite: **Barrel** — výbuch při trefu pickaxem nebo při průchodu nepřítelem
 - Výbuch poškodí vše v okruhu (hráč, nepřátelé, dřevěné zdi)
@@ -123,14 +118,9 @@ Nápady v ranější fázi nebo vyžadující větší diskusi:
 
 ```
 Sprint 1 (rychlé výhry):
-  → ✅ #5  Obtížnosti          (hotovo)
   → #6  High score            (localStorage)
-  → ✅ #11 Head Bob & Shake      (hotovo)
-  → ✅ #14 Sprint + Stamina    (hotovo)
 
 Sprint 2 (gameplay hloubka):
-  → ✅ #2  Klíče & dveře        (hotovo)
-  → ✅ #12 Otevíratelné dveře    (hotovo)
   → #3  Výbušné sudy
   → #4  Pasti
 

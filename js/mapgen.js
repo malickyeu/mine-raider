@@ -243,16 +243,18 @@ export function generateMap({
         regularPlaced++;
     }
 
-    // 8b. Place locked doors + keys (BFS-safe)
-    const lockedDoorCount = difficulty === 'easy' ? 0 : difficulty === 'normal' ? 1 : 2;
+    // 8b. Place locked doors + keys — redesigned:
+    //   The locked door sits on the MAIN PATH to the exit, so the player MUST
+    //   find the key to finish the level. Key is hidden far from the player
+    //   in the open (unlocked) zone. Bonus gold/gem is scattered in the locked
+    //   zone behind the door to make it rewarding to explore.
+    const lockedDoorCount = difficulty === 'easy' ? 0 : 1;
     const lockColors = [T.DOOR_RED, T.DOOR_BLUE];
     const keyColors  = [T.KEY_RED,  T.KEY_BLUE];
-    const placedLockKeys = new Set(); // blocked positions for BFS
+    const placedLockKeys = new Set(); // cell keys of placed locked doors (for BFS blocking)
 
     for (let i = 0; i < lockedDoorCount; i++) {
-        // Re-scan corridors (some are now doors or close to doors)
         const corridors = shuffle(findCorridorCells());
-        let placed = false;
 
         for (const cell of corridors) {
             if (isInsideRoom(cell.x, cell.y)) continue;
@@ -260,37 +262,65 @@ export function generateMap({
 
             const doorKey = cell.y * width + cell.x;
 
-            // Temporarily block this cell and all existing locked doors
+            // Block this door + all prior locked doors
             const blocked = new Set(placedLockKeys);
             blocked.add(doorKey);
-            // Also treat regular doors as passable for BFS (they're always openable)
 
-            const reachable = bfsReachable(sc.x, sc.y, blocked);
+            // Open zone = reachable from player with this door (+ prior locks) blocked
+            const openReachable = bfsReachable(sc.x, sc.y, blocked);
 
-            // Exit must still be reachable without this door
-            if (!reachable.has(ec.y * width + ec.x)) continue;
+            // ── Exit must be in the LOCKED zone (behind this door) ──
+            if (openReachable.has(ec.y * width + ec.x)) continue;
 
-            // Collect empty reachable cells for key placement (not player, not exit)
-            const reachableEmpty = [];
-            for (const k of reachable) {
-                const ry = Math.floor(k / width);
-                const rx = k % width;
-                if (tiles[ry][rx] === T.EMPTY && !(rx === sc.x && ry === sc.y)) {
-                    reachableEmpty.push({ x: rx, y: ry });
-                }
+            // Sanity: exit was reachable before adding this door
+            if (!bfsReachable(sc.x, sc.y, placedLockKeys).has(ec.y * width + ec.x)) continue;
+
+            // Collect open-zone empty cells for key placement
+            // Exclude the entire starting room so the key is never trivially close
+            const startRoom = rooms[0];
+            const openEmpty = [];
+            for (const k of openReachable) {
+                const ky2 = Math.floor(k / width), kx2 = k % width;
+                if (tiles[ky2][kx2] !== T.EMPTY) continue;
+                if (kx2 >= startRoom.x1 && kx2 <= startRoom.x2 &&
+                    ky2 >= startRoom.y1 && ky2 <= startRoom.y2) continue;
+                openEmpty.push({ x: kx2, y: ky2 });
             }
-            if (reachableEmpty.length === 0) continue;
+            if (openEmpty.length < 3) continue;
 
-            // Place locked door
+            // ── Place the locked door ──
             tiles[cell.y][cell.x] = lockColors[i];
             placedLockKeys.add(doorKey);
             doorPositions.push(cell);
 
-            // Place matching key on a reachable cell
-            const keyCell = reachableEmpty[Math.floor(Math.random() * reachableEmpty.length)];
-            tiles[keyCell.y][keyCell.x] = keyColors[i];
-            placed = true;
-            break;
+            // ── Key: place in the FARTHEST third of the open zone from player ──
+            openEmpty.sort((a, b) =>
+                (Math.abs(b.x - sc.x) + Math.abs(b.y - sc.y)) -
+                (Math.abs(a.x - sc.x) + Math.abs(a.y - sc.y))
+            );
+            const topN = Math.max(1, Math.floor(openEmpty.length / 3));
+            const kidx = Math.floor(Math.random() * topN);
+            tiles[openEmpty[kidx].y][openEmpty[kidx].x] = keyColors[i];
+
+            // ── Bonus treasure scattered through the locked zone ──
+            const lockedZone = [];
+            for (let y2 = 1; y2 < height - 1; y2++) {
+                for (let x2 = 1; x2 < width - 1; x2++) {
+                    if (tiles[y2][x2] !== T.EMPTY) continue;
+                    if (x2 === ec.x && y2 === ec.y) continue;
+                    if (!openReachable.has(y2 * width + x2))
+                        lockedZone.push({ x: x2, y: y2 });
+                }
+            }
+            const lzShuffled = shuffle(lockedZone);
+            let lz = 0;
+            const bonusGold = Math.min(4, Math.max(1, Math.floor(lzShuffled.length / 5)));
+            for (let n = 0; n < bonusGold && lz < lzShuffled.length; n++, lz++)
+                tiles[lzShuffled[lz].y][lzShuffled[lz].x] = T.GOLD;
+            if (lz < lzShuffled.length)
+                tiles[lzShuffled[lz].y][lzShuffled[lz].x] = T.GEM;
+
+            break; // door placed — move on to next locked door slot
         }
     }
 

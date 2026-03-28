@@ -351,6 +351,9 @@ function buildGenTab() {
             hard:   { bats:3, skeletons:2, spiders:3, ghosts:2, gold:2, gems:1, health:1, torches:Math.ceil(rooms*0.5) },
         }[diff] ?? { bats:2, skeletons:1, spiders:2, ghosts:1, gold:3, gems:1, health:2, torches:Math.ceil(rooms*0.8) };
 
+        const regularDoors = Math.max(2, Math.floor(rooms * 0.6));
+        const lockedDoors  = diff === 'easy' ? 0 : 1;
+
         previewDiv.innerHTML =
             `<div class="gen-preview-title">${t('edGenPreview')}</div>` +
             `<div class="gen-preview-grid">` +
@@ -362,6 +365,8 @@ function buildGenTab() {
             `<span>💎 ×${Math.max(1,Math.round(DS.gems*scale))}</span>` +
             `<span>❤️ ×${Math.max(1,Math.round(DS.health*scale))}</span>` +
             `<span>🔥 ×${Math.round(DS.torches)}</span>` +
+            `<span>🚪 ~${regularDoors}</span>` +
+            (lockedDoors > 0 ? `<span>🔒 ×${lockedDoors}</span><span>🔑 ×${lockedDoors}</span>` : '') +
             `</div>`;
     }
 

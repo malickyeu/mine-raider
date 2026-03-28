@@ -159,6 +159,7 @@ window.addEventListener('keydown', e => {
         if (state === 'game') {
             releasePointer();
             switchState(gameMode === 'custom' ? 'editor' : 'menu');
+            return;
         }
         if (state === 'editor') { switchState('menu'); }
     }
@@ -291,7 +292,7 @@ function startGame() {
     player.score = prevScore;
     if (prevHp !== null) player.hp = prevHp;
     player.keys = prevKeys;
-    player.hasFlashlight = prevFlashlight || (gameMode !== 'campaign');
+    player.hasFlashlight = prevFlashlight; // must find the lantern (campaign level 1 has it)
     player.flashlightOn = prevFlashlightOn; // default true; carries toggle state across levels
 
     entities = createEntities(entList, DIFFICULTIES[selectedDifficulty]);

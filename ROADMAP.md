@@ -1,7 +1,7 @@
 # ⛏️ Mine Raider – Roadmap
 
 > Živý dokument sledující plánované funkce a nápady pro další rozvoj hry.  
-> Poslední aktualizace: **2026-03-28** · verze **0.3.0** · 16 features (5 hotovo, 11 zbývá)
+> Poslední aktualizace: **2026-03-28** · verze **0.3.1** · 16 features (7 hotovo, 9 zbývá)
 
 ---
 
@@ -27,15 +27,15 @@
 - [x] Malá lékárnička (`T.HEALTH_SMALL`, +15 HP)
 - [x] Dřevo sousedící s dveřmi nelze rozbít
 - [x] Klíče a zamčené dveře (`T.KEY_RED`, `T.KEY_BLUE`, `T.DOOR_RED`, `T.DOOR_BLUE`) — 2 barvy, BFS-safe generátor, HUD ikonky klíčů, minimap barevné rozlišení
+- [x] **Svítilna / Lucerna** 🔦 — collectible `T.FLASHLIGHT`, kužel světla (přepracovaný fog + vignette), přepínač `L`, HUD indikátor ON/OFF; pochodeň-flicker animace na zdech i spritech
+- [x] **Redesign palety editoru** — skupiny dlaždic (Prostředí / Vybavení / Předměty / Nepřátelé), ikony místo textů, tooltip s názvem + popisem při najetí myší
+- [x] **Oprava logiky zamčených dveří v generátoru** — exit je vždy za zamčenou branou; klíč je ukrytý v nejodlehlejší třetině otevřené zóny (nikdy ve startovací místnosti); v uzamčené zóně jsou bonus poklady
+- [x] **Globální žebříček skóre** 🏆 — `highscore.js`, localStorage, per-difficulty best score na difficulty screen, rekordní zobrazení po výhře/prohře
 
 ---
 
 ## 🔝 Plánované features
 
-### 1. 🔦 Dynamické osvětlení (Torch flicker + kužel světla)
-- Pochodně vrhají reálně animované světlo (flicker efekt)
-- Hráč má omezenou svítilnu/lucernu s baterií — ta se vybíjí a dobíjí se u pochodeň-triggerů
-- Vzdálenější části mapy jsou výrazněji tmavé
 
 ### 3. 💣 Výbušné sudy
 - Nový sprite: **Barrel** — výbuch při trefu pickaxem nebo při průchodu nepřítelem
@@ -47,10 +47,6 @@
 - **Rolling Boulder** – pohybující se objekt po chodbě, inspirováno Indiana Jones
 - Viditelné varování (jiná barva dlaždice) na nižší obtížnosti
 
-### 6. 🏆 Globální žebříček skóre (high score)
-- Skóre, čas dohrání a obtížnost ukládány do `localStorage`
-- Tabulka "Top 10 runs" na hlavním menu
-- Každý run dostane unikátní timestamp a zobrazí se datum
 
 ### 7. 🗺️ Automap (odhalená mapa)
 - Navštívené části mapy se ukládají a zobrazují ve zvětšeném mapovém módu (`Tab`)
@@ -107,7 +103,7 @@ Nápady v ranější fázi nebo vyžadující větší diskusi:
 | **Mobilní ovládání** | On-screen joystick a tlačítka pro touch zařízení |
 | **Exportovat / importovat mapy jako JSON** | Tlačítko v editoru stáhne `.json` soubor, nebo nahraje existující |
 | **Steam-style achievementy** | Lokální odznaky (první zlatý, 100 nepřátel, žádné poškození, apod.) |
-| **Destructible ceilings** | Padající kameny při demolici zdi, vizuální particle efekt |
+| **Baterie svítilny** | Svítilna má omezenou výdrž — dobíjí se u pochodeň-triggerů; přidá strategické rozhodování |
 | **Minimap editor overlay** | Při editaci velké mapy (128×128) zobrazit minimapu v rohu editoru |
 | **Level editor – undo/redo** | `Ctrl+Z` / `Ctrl+Y` pro editační historii tahů |
 | **Různé druhy podlah / stropů** | Tile-based floor/ceiling s textúrami (water, lava, dirt) |
@@ -117,15 +113,15 @@ Nápady v ranější fázi nebo vyžadující větší diskusi:
 ## 🗓️ Navrhované pořadí implementace
 
 ```
-Sprint 1 (rychlé výhry):
-  → #6  High score            (localStorage)
+Sprint 1 ✅ (hotovo):
+  → #1  Svítilna / dynamické osvětlení
+  → #6  High score (localStorage, per-difficulty best score)
 
 Sprint 2 (gameplay hloubka):
   → #3  Výbušné sudy
   → #4  Pasti
 
 Sprint 3 (polishing & atmosféra):
-  → #1  Dynamické osvětlení
   → #13 Ambientní soundtrack
   → #7  Automap / Fog of War
   → #10 Příběhové obrazovky

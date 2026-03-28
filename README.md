@@ -23,16 +23,18 @@ Everything — wall textures, sprites, sounds — is **procedurally generated at
 | **Rendering** | DDA raycasting engine (Wolf3D-style), textured walls, distance fog, floor/ceiling gradients, head bob & screen shake on damage |
 | **Wall types** | Stone, Wood *(breakable)*, Ore, Mossy Stone, Crystal, Iron, **Door** *(openable, Wolf3D-style thin wall with 3D frame)* |
 | **Enemies** | Bat, Spider, Skeleton, Ghost *(phases through walls!)* |
-| **Collectibles** | Gold coins (100 pts), Gemstones (500 pts), Health packs (large +30 HP, small +15 HP) |
-| **Decorations** | Torches (ambient), Stone pillars (block movement, transparent sprite) |
+| **Collectibles** | Gold coins, Gemstones, Health packs (large +40 HP, small +15 HP), **Lantern** 🔦 *(unlocks dynamic lighting cone)* |
+| **Decorations** | Torches *(flickering ambient light)*, Stone pillars *(block movement, transparent sprite)* |
 | **Doors** | Press `F` to open; auto-close after 3 s; 3D square frame posts; wood walls adjacent to doors cannot be broken |
+| **Locked doors** | Red 🔴 / Blue 🔵 locked doors require matching keys; keys carried across campaign levels |
+| **Flashlight** | Collectible lantern widens the lighting cone; toggle on/off with `L`; HUD shows ON/OFF state |
 | **Campaign** | 5 hand-crafted levels of increasing size and difficulty |
 | **Difficulty** | Miner / Prospector / Deep Delver — scales enemy HP, speed, damage and attack rate |
 | **Sprint** | Hold `Shift` to move 1.6× faster; stamina bar in HUD drains and regenerates |
-| **Map editor** | Grid-based editor with full palette, level selector, resize, save/load |
+| **Map editor** | Grid-based editor with grouped icon palette (tooltips on hover), level selector, resize, save/load, map generator |
 | **i18n** | Czech 🇨🇿 / English 🇬🇧 UI language switch (persisted in localStorage) |
 | **Audio** | Web Audio oscillator-based SFX — no audio files needed |
-| **HUD** | Health bar, stamina bar, score, minimap with toggle (shows door states), level name + difficulty badge |
+| **HUD** | Health bar, stamina bar, score, minimap with toggle, level name + difficulty badge, key icons, flashlight indicator |
 | **Help overlay** | In-game help screen (press `H`) |
 
 ---
@@ -70,11 +72,11 @@ npm run dev
 | `Shift` | Sprint (1.6× speed, drains stamina) |
 | Mouse | Look around (click canvas to lock pointer) |
 | `Space` | Swing pickaxe — attack enemies, break wood walls |
-| `F` | Open / close doors |
+| `F` | Open / close doors (locked doors need matching key) |
+| `L` | Toggle lantern on / off |
 | `M` | Toggle minimap |
 | `H` | Toggle help overlay |
-| `Q` / `E` | Rotate left / right (keyboard alternative) |
-| `ESC` | Return to main menu |
+| `ESC` | Return to menu (or editor when playing a custom map) |
 
 ---
 
@@ -117,7 +119,7 @@ Some corridors are sealed by **coloured locked doors** — red 🔴 or blue 🔵
 **HUD:** Collected keys appear as small coloured icons next to your score.  
 **Minimap:** Locked doors are shown in their matching colour (red / blue) even after being unlocked.
 
-> In generated maps (editor generator), the BFS connectivity algorithm guarantees that a key is **always reachable** without having to pass through its own locked door first.
+> In generated maps (editor generator), the locked door sits on the **main path to the exit** — the exit is only reachable after finding the key. The key is always placed in the farthest reachable zone from the player start (never in the starting room), and the locked zone behind the door contains bonus treasure.
 
 ---
 
@@ -177,7 +179,7 @@ action-game/
     ├── renderer.js      ← Frame orchestration (ceiling, floor, walls, sprites, HUD)
     ├── textures.js      ← Procedural wall textures + billboard sprites
     ├── sprites.js       ← Sprite sorting, depth clipping, billboard rendering
-    ├── entities.js      ← Player, Enemy, Treasure, Pillar, Exit, Torch, HealthPack, KeyItem
+    ├── entities.js      ← Player, Enemy, Treasure, Pillar, Exit, Torch, HealthPack, KeyItem, Flashlight
     ├── collision.js     ← AABB grid collision with wall sliding
     ├── input.js         ← Keyboard state + pointer-lock mouse delta
     ├── hud.js           ← Health bar, score, minimap, level name, help overlay
@@ -195,6 +197,8 @@ action-game/
 - **Sprite rendering** uses painter's algorithm (sorted by distance), depth-buffer clipped against the wall depth buffer
 - **Breakable walls** track remaining HP in a `Map` keyed by tile coordinates; damage is visualised as a darkening overlay on each wall column
 - **Doors** are Wolf3D-style thin walls rendered at tile centre via multi-plane intersection in the raycaster (centre plane + frame AABBs); door open/close state is tracked per tile with auto-close timer
+- **Flashlight** is a collectible entity (`T.FLASHLIGHT`) that enables a lighting cone: fog falloff and vignette are gentler within the player's facing angle; toggled on/off with `L`; `player.flashlightOn` is separate from `player.hasFlashlight` so the state survives level transitions
+- **Sprite fog** is applied via `globalAlpha` (not a `fillRect` overlay) to avoid rectangular artefacts on sprites with transparent backgrounds
 - **Locked doors** (`T.DOOR_RED`, `T.DOOR_BLUE`) keep their tile type permanently — an `unlocked` flag in `doorStates` records the first successful key use; the coloured texture and minimap colour are always preserved
 - **Head bob & screen shake** apply Y / XY canvas translation before rendering; HUD is drawn after `ctx.restore()` so it remains stable
 - **Ghost enemy** skips collision checks and always has line-of-sight, making it the most dangerous enemy type

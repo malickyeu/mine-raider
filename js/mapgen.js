@@ -203,8 +203,8 @@ export function generateMap({
         }
     };
 
-    placeEntities(T.TORCH,    Math.round(DS.torches),                              allEmpty);
-    placeEntities(T.HEALTH,   DS.health,                                            allEmpty);
+    placeEntities(T.TORCH,    Math.round(DS.torches),                               allEmpty);
+    placeEntities(T.HEALTH,   Math.max(1, Math.round(DS.health * scale)),           allEmpty);
     placeEntities(T.GOLD,     Math.max(2, Math.round(DS.gold    * scale)),          allEmpty);
     placeEntities(T.GEM,      Math.max(1, Math.round(DS.gems    * scale)),          allEmpty);
     placeEntities(T.BAT,      Math.max(0, Math.round(DS.bats    * scale)),          nonStartEmpty);

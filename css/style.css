@@ -455,6 +455,28 @@ body {
     min-width: 72px;
 }
 
+.gen-preview {
+    margin: 8px 0 4px;
+    padding: 7px 8px;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid #3a2808;
+    border-radius: 2px;
+}
+
+.gen-preview-title {
+    font-size: 0.7rem;
+    color: #c89040;
+    margin-bottom: 5px;
+}
+
+.gen-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3px 2px;
+    font-size: 0.75rem;
+    color: #ddd;
+}
+
 /* ── Win / Death overlay ── */
 #overlay {
     display: none;

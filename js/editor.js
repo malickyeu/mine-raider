@@ -20,7 +20,7 @@ const PANEL_W = 224; // matches CSS width
 const ALL_TILES = [
     T.EMPTY, T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON,
     T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.SPIDER, T.GHOST,
-    T.EXIT, T.TORCH, T.HEALTH, T.PILLAR,
+    T.EXIT, T.TORCH, T.HEALTH, T.HEALTH_SMALL, T.PILLAR,
 ];
 
 // ════════════════════════════════════════
@@ -254,6 +254,41 @@ function buildGenTab() {
         </div>
     `;
 
+    // ── Live preview ──
+    const previewDiv = document.createElement('div');
+    previewDiv.className = 'gen-preview';
+    pane.appendChild(previewDiv);
+
+    function updatePreview() {
+        const rooms = Math.max(4, Math.min(60, parseInt(document.getElementById('gen-rooms')?.value) || 8));
+        const diff  = document.getElementById('gen-diff')?.value  || 'normal';
+        const scale = Math.max(1, rooms / 8);
+        const DS = {
+            easy:   { bats:1, skeletons:0, spiders:1, ghosts:0, gold:4, gems:2, health:3, torches:rooms },
+            normal: { bats:2, skeletons:1, spiders:2, ghosts:1, gold:3, gems:1, health:2, torches:Math.ceil(rooms*0.8) },
+            hard:   { bats:3, skeletons:2, spiders:3, ghosts:2, gold:2, gems:1, health:1, torches:Math.ceil(rooms*0.5) },
+        }[diff] ?? { bats:2, skeletons:1, spiders:2, ghosts:1, gold:3, gems:1, health:2, torches:Math.ceil(rooms*0.8) };
+
+        previewDiv.innerHTML =
+            `<div class="gen-preview-title">${t('edGenPreview')}</div>` +
+            `<div class="gen-preview-grid">` +
+            `<span>🦇 ×${Math.max(0,Math.round(DS.bats*scale))}</span>` +
+            `<span>💀 ×${Math.max(0,Math.round(DS.skeletons*scale))}</span>` +
+            `<span>🕷️ ×${Math.max(0,Math.round(DS.spiders*scale))}</span>` +
+            `<span>👻 ×${Math.max(0,Math.round(DS.ghosts*scale))}</span>` +
+            `<span>💰 ×${Math.max(2,Math.round(DS.gold*scale))}</span>` +
+            `<span>💎 ×${Math.max(1,Math.round(DS.gems*scale))}</span>` +
+            `<span>❤️ ×${Math.max(1,Math.round(DS.health*scale))}</span>` +
+            `<span>🔥 ×${Math.round(DS.torches)}</span>` +
+            `</div>`;
+    }
+
+    // Attach live listeners after elements exist in DOM
+    document.getElementById('gen-size').addEventListener('change', updatePreview);
+    document.getElementById('gen-diff').addEventListener('change', updatePreview);
+    document.getElementById('gen-rooms').addEventListener('input',  updatePreview);
+    updatePreview(); // initial render
+
     pane.appendChild(makeEdBtn(t('edGenerate'), 'gen-btn', () => {
         const wallType   = parseInt(document.getElementById('gen-wall').value);
         const size       = parseInt(document.getElementById('gen-size').value);
@@ -366,7 +401,7 @@ function drawGrid() {
         [T.PLAYER]:   '🧑', [T.GOLD]:     '💰', [T.GEM]:   '💎',
         [T.BAT]:      '🦇', [T.SKELETON]: '💀', [T.SPIDER]:'🕷️',
         [T.GHOST]:    '👻', [T.EXIT]:      '🚪', [T.TORCH]: '🔥',
-        [T.HEALTH]:   '❤️', [T.PILLAR]:   '🪨',
+        [T.HEALTH]:   '❤️', [T.HEALTH_SMALL]: '🩹', [T.PILLAR]: '🪨',
     };
     for (let y = 0; y < mapData.height; y++) {
         for (let x = 0; x < mapData.width; x++) {

@@ -56,10 +56,11 @@ export const T = {
     SPIDER:   18,
     GHOST:    19,
     PILLAR:   20,   // decorative column – transparent sprite, blocks movement
+    HEALTH_SMALL: 21, // small health pack – restores 15 HP
 };
 
 export const WALL_TYPES = new Set([T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON]);
-export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.EXIT, T.TORCH, T.HEALTH, T.SPIDER, T.GHOST, T.PILLAR]);
+export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.EXIT, T.TORCH, T.HEALTH, T.SPIDER, T.GHOST, T.PILLAR, T.HEALTH_SMALL]);
 
 // Breakable walls: tile → initial HP
 export const BREAKABLE_TYPES = new Set([T.WOOD]);
@@ -85,6 +86,7 @@ export const TILE_LABEL_KEYS = {
     [T.SPIDER]:   'tSpider',
     [T.GHOST]:    'tGhost',
     [T.PILLAR]:   'tPillar',
+    [T.HEALTH_SMALL]: 'tHealthSmall',
 };
 
 export const TILE_COLORS = {
@@ -106,4 +108,5 @@ export const TILE_COLORS = {
     [T.SPIDER]:   '#446622',
     [T.GHOST]:    '#aaddff',
     [T.PILLAR]:   '#887766',
+    [T.HEALTH_SMALL]: '#cc6688',
 };

@@ -2,8 +2,7 @@
 
 import { T, PLAYER_MAX_HP, PLAYER_SPEED, PLAYER_ROT_SPEED, PLAYER_MOUSE_SENS,
          ENEMY_SPEED, ENEMY_DAMAGE, ENEMY_HIT_INTERVAL,
-         SPRINT_MULT, STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN } from './config.js';
-import { isDown, consumeMouseDX } from './input.js';
+         SPRINT_MULT, STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN } from './config.js';import { isDown, consumeMouseDX } from './input.js';
 import { moveWithCollision } from './collision.js';
 import { isWall } from './map.js';
 
@@ -22,30 +21,42 @@ export class Player {
         this.stamina = STAMINA_MAX;
         this.staminaMax = STAMINA_MAX;
         this.sprinting = false;
+        this.staminaExhausted = false;
     }
 
     update(dt, mapData) {
-        // ── Rotation ──
-        const mdx = consumeMouseDX();
-        this.angle += mdx * PLAYER_MOUSE_SENS;
-
-        if (isDown('ArrowLeft')  || isDown('KeyQ')) this.angle -= PLAYER_ROT_SPEED * dt;
-        if (isDown('ArrowRight') || isDown('KeyE')) this.angle += PLAYER_ROT_SPEED * dt;
-
-        // ── Movement ──
-        let moveX = 0, moveY = 0;
-        const cosA = Math.cos(this.angle);
-        const sinA = Math.sin(this.angle);
-
-        // ── Sprint & Stamina ──
+        // ── Input snapshot (computed once, used by sprint + movement + rotation) ──
         const wantSprint = isDown('ShiftLeft') || isDown('ShiftRight');
-        this.sprinting = wantSprint && this.stamina > 0;
+        const wantsMove  = isDown('KeyW') || isDown('ArrowUp')
+                        || isDown('KeyS') || isDown('ArrowDown')
+                        || isDown('KeyA') || isDown('KeyD');
+
+        // ── Stamina & Sprint ──
+        // Drain only while actually moving; require SHIFT release to recover from exhaustion
+        if (this.stamina <= 0) {
+            this.staminaExhausted = true;
+        } else if (this.staminaExhausted && this.stamina >= this.staminaMax * 0.25 && !wantSprint) {
+            this.staminaExhausted = false;
+        }
+        this.sprinting = wantSprint && wantsMove && !this.staminaExhausted;
         if (this.sprinting) {
             this.stamina = Math.max(0, this.stamina - STAMINA_DRAIN * dt);
         } else {
             this.stamina = Math.min(this.staminaMax, this.stamina + STAMINA_REGEN * dt);
         }
         const speedMult = this.sprinting ? SPRINT_MULT : 1.0;
+
+        // ── Rotation (speedMult applied so SHIFT+arrows rotates faster too) ──
+        const mdx = consumeMouseDX();
+        this.angle += mdx * PLAYER_MOUSE_SENS;
+
+        if (isDown('ArrowLeft')  || isDown('KeyQ')) this.angle -= PLAYER_ROT_SPEED * speedMult * dt;
+        if (isDown('ArrowRight') || isDown('KeyE')) this.angle += PLAYER_ROT_SPEED * speedMult * dt;
+
+        // ── Movement ──
+        let moveX = 0, moveY = 0;
+        const cosA = Math.cos(this.angle);
+        const sinA = Math.sin(this.angle);
 
         if (isDown('KeyW') || isDown('ArrowUp')) {
             moveX += cosA * PLAYER_SPEED * speedMult * dt;
@@ -121,6 +132,14 @@ export class HealthPack extends Entity {
     constructor(x, y) {
         super(T.HEALTH, x, y);
         this.healAmount = 30;
+    }
+}
+
+// ── SmallHealthPack ──
+export class SmallHealthPack extends Entity {
+    constructor(x, y) {
+        super(T.HEALTH_SMALL, x, y);
+        this.healAmount = 15;
     }
 }
 
@@ -279,6 +298,9 @@ export function createEntities(entityList, difficulty = null) {
                 break;
             case T.HEALTH:
                 entities.push(new HealthPack(e.x, e.y));
+                break;
+            case T.HEALTH_SMALL:
+                entities.push(new SmallHealthPack(e.x, e.y));
                 break;
             case T.PILLAR:
                 entities.push(new Pillar(e.x, e.y));

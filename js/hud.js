@@ -6,9 +6,18 @@ import { t } from './i18n.js';
 let minimapVisible = true;
 let helpVisible = false;
 
-export function toggleMinimap() {
-    minimapVisible = !minimapVisible;
-}
+// ── Module-level constants (no per-frame allocation) ──
+const WALL_COLORS = {
+    [T.WOOD]: '#6a4020', [T.ORE]: '#5a5a30',
+    [T.MOSSY]: '#3a5a2a', [T.CRYSTAL]: '#4466aa',
+    [T.IRON]: '#6a6a80',
+};
+const DIFF_COLORS = { easy: '#66dd55', normal: '#f0c040', hard: '#ff7744' };
+const DIFF_KEYS   = { easy: 'diffEasy', normal: 'diffNormal', hard: 'diffHard' };
+
+const MAX_MM_PX = 120; // max minimap size in pixels
+
+export function toggleMinimap() { minimapVisible = !minimapVisible; }
 
 export function toggleHelp() {
     helpVisible = !helpVisible;
@@ -57,10 +66,10 @@ export function drawHUD(ctx, player, mapData, levelInfo) {
     ctx.fillStyle = stColor;
     ctx.fillRect(barX, stBarY, barW * stRatio, stBarH);
     if (player.sprinting) {
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.font = 'bold 8px monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.font = 'bold 7px monospace';
         ctx.textAlign = 'left';
-        ctx.fillText('⚡', barX + 2, stBarY + stBarH - 1);
+        ctx.fillText('>>>', barX + 2, stBarY + stBarH - 1);
     }
 
     // ── Score ──
@@ -68,60 +77,66 @@ export function drawHUD(ctx, player, mapData, levelInfo) {
     ctx.fillRect(barX - 2, barY - 26, 120, 20);
     ctx.fillStyle = '#ffd700';
     ctx.font = 'bold 13px monospace';
-    ctx.fillText(`💰 ${player.score}`, barX + 4, barY - 11);
+    ctx.fillText(`\u26CF ${player.score}`, barX + 4, barY - 11);
 
     // ── Level indicator (top center) ──
     if (levelInfo) {
         const displayName = levelInfo.nameKey ? t(levelInfo.nameKey) : (levelInfo.name || '');
-        const lvlText = `⛏ ${displayName}`;
+        const lvlText = `\u26CF ${displayName}`;
         ctx.font = 'bold 12px monospace';
         ctx.textAlign = 'center';
         const tw = ctx.measureText(lvlText).width;
 
-        const hasDiff = !!levelInfo.difficulty;
+        const diff = levelInfo.difficulty;
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.fillRect(SCREEN_W / 2 - tw / 2 - 8, 6, tw + 16, hasDiff ? 30 : 20);
+        ctx.fillRect(SCREEN_W / 2 - tw / 2 - 8, 6, tw + 16, diff ? 30 : 20);
 
         ctx.fillStyle = '#f0c040';
-        ctx.fillText(lvlText, SCREEN_W / 2, hasDiff ? 18 : 20);
+        ctx.fillText(lvlText, SCREEN_W / 2, diff ? 18 : 20);
 
-        if (hasDiff) {
-            const diffNames  = { easy: t('diffEasy'), normal: t('diffNormal'), hard: t('diffHard') };
-            const diffColors = { easy: '#66dd55', normal: '#f0c040', hard: '#ff7744' };
+        if (diff) {
             ctx.font = '9px monospace';
-            ctx.fillStyle = diffColors[levelInfo.difficulty] || '#f0c040';
-            ctx.fillText(diffNames[levelInfo.difficulty] || '', SCREEN_W / 2, 31);
+            ctx.fillStyle = DIFF_COLORS[diff] || '#f0c040';
+            ctx.fillText(t(DIFF_KEYS[diff]) || '', SCREEN_W / 2, 31);
         }
     }
 
     // ── Minimap ──
     if (minimapVisible) {
-        const mmW = mapData.width * MINIMAP_SCALE;
-        const mmH = mapData.height * MINIMAP_SCALE;
-        const mmX = SCREEN_W - mmW - MINIMAP_MARGIN;
+        const mmViewW = Math.min(mapData.width  * MINIMAP_SCALE, MAX_MM_PX);
+        const mmViewH = Math.min(mapData.height * MINIMAP_SCALE, MAX_MM_PX);
+        const mmX = SCREEN_W - mmViewW - MINIMAP_MARGIN;
         const mmY = MINIMAP_MARGIN;
 
-        ctx.fillStyle = 'rgba(0,0,0,0.65)';
-        ctx.fillRect(mmX - 1, mmY - 1, mmW + 2, mmH + 2);
+        // Integer tile offset – tiles sit on exact pixel boundaries, no clip() needed
+        const viewTilesX = Math.floor(mmViewW / MINIMAP_SCALE);
+        const viewTilesY = Math.floor(mmViewH / MINIMAP_SCALE);
+        const offX = Math.floor(Math.max(0, Math.min(mapData.width  - viewTilesX, player.x - viewTilesX / 2)));
+        const offY = Math.floor(Math.max(0, Math.min(mapData.height - viewTilesY, player.y - viewTilesY / 2)));
 
-        for (let y = 0; y < mapData.height; y++) {
-            for (let x = 0; x < mapData.width; x++) {
+        ctx.fillStyle = 'rgba(0,0,0,0.65)';
+        ctx.fillRect(mmX - 1, mmY - 1, mmViewW + 2, mmViewH + 2);
+
+        // Only iterate tiles inside the viewport
+        const tileX1 = Math.min(mapData.width,  offX + viewTilesX);
+        const tileY1 = Math.min(mapData.height, offY + viewTilesY);
+
+        for (let y = offY; y < tileY1; y++) {
+            for (let x = offX; x < tileX1; x++) {
                 const tile = mapData.tiles[y][x];
-                if (WALL_TYPES.has(tile)) {
-                    const colors = {
-                        [T.WOOD]: '#6a4020', [T.ORE]: '#5a5a30',
-                        [T.MOSSY]: '#3a5a2a', [T.CRYSTAL]: '#4466aa',
-                        [T.IRON]: '#6a6a80',
-                    };
-                    ctx.fillStyle = colors[tile] || '#555';
-                    ctx.fillRect(mmX + x * MINIMAP_SCALE, mmY + y * MINIMAP_SCALE,
-                                 MINIMAP_SCALE, MINIMAP_SCALE);
-                }
+                if (!WALL_TYPES.has(tile)) continue;
+                ctx.fillStyle = WALL_COLORS[tile] || '#555';
+                ctx.fillRect(
+                    mmX + (x - offX) * MINIMAP_SCALE,
+                    mmY + (y - offY) * MINIMAP_SCALE,
+                    MINIMAP_SCALE, MINIMAP_SCALE
+                );
             }
         }
 
-        const px = mmX + player.x * MINIMAP_SCALE;
-        const py = mmY + player.y * MINIMAP_SCALE;
+        // Player dot + direction
+        const px = mmX + (player.x - offX) * MINIMAP_SCALE;
+        const py = mmY + (player.y - offY) * MINIMAP_SCALE;
         ctx.fillStyle = '#0cf';
         ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = '#0cf'; ctx.lineWidth = 1.5;
@@ -130,7 +145,7 @@ export function drawHUD(ctx, player, mapData, levelInfo) {
         ctx.stroke();
     }
 
-    // ── Hint bar (just "H — Help") ──
+    // ── Hint bar ──
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
     ctx.font = '10px monospace';
     ctx.textAlign = 'right';

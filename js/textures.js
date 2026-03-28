@@ -326,6 +326,22 @@ function drawHealth() {
     return c;
 }
 
+function drawHealthSmall() {
+    const c = createCanvas(32, 32);
+    const ctx = c.getContext('2d');
+    // Smaller pink cross – visually lighter than the full health pack
+    ctx.fillStyle = '#cc3366';
+    ctx.fillRect(13, 9, 6, 14);
+    ctx.fillRect(9, 13, 14, 6);
+    ctx.fillStyle = '#ee88aa';
+    ctx.fillRect(14, 11, 4, 10);
+    ctx.fillRect(11, 14, 10, 4);
+    // Small white center dot to distinguish at a glance
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.beginPath(); ctx.arc(16, 16, 2, 0, Math.PI * 2); ctx.fill();
+    return c;
+}
+
 function drawSpider() {
     const c = createCanvas(32, 32);
     const ctx = c.getContext('2d');
@@ -430,6 +446,7 @@ const spriteGenerators = {    [T.GOLD]:     drawGold,
     [T.EXIT]:     drawExit,
     [T.TORCH]:    drawTorch,
     [T.HEALTH]:   drawHealth,
+    [T.HEALTH_SMALL]: drawHealthSmall,
     [T.SPIDER]:   drawSpider,
     [T.GHOST]:    drawGhost,
     [T.PILLAR]:   drawPillar,

@@ -48,6 +48,7 @@ const translations = {
         winAllText:     (n, s) => `Prošel jsi všech ${n} úrovní! Celkové skóre: ${s}`,
         winCustomText:  (s) => `Našel jsi cestu ven! Skóre: ${s}`,
         backToMenu:     'Zpět do menu',
+        backToEditor:   'Zpět do editoru',
 
         // Editor
         palette:        '🎨 Paleta',
@@ -75,6 +76,7 @@ const translations = {
         edMapSize:      'Rozměry:',
         edFileActions:  'Soubor:',
         edGenDone:      '✓ Mapa vygenerována!',
+        edGenPreview:   '📊 Odhadovaný obsah',
 
         // Map generator
         edGenTitle:     '🎲 Generátor map',
@@ -115,6 +117,7 @@ const translations = {
         tExit:     'Východ',    tTorch:    'Pochodeň',
         tHealth:   'Zdraví',    tSpider:   'Pavouk',
         tGhost:    'Duch',      tPillar:   'Pilíř',
+        tHealthSmall: 'Malé zdraví',
     },
 
     en: {
@@ -130,6 +133,7 @@ const translations = {
 
         title:          '⛏️ Mine Raider',
         subtitle:       'Treasure of the Old Mines',
+        btnPlay:        '▶ Play',
         btnEditor:      '🗺️ Map Editor',
         btnLang:        '🌐 Čeština',
 
@@ -158,6 +162,7 @@ const translations = {
         winAllText:     (n, s) => `You cleared all ${n} levels! Total score: ${s}`,
         winCustomText:  (s) => `You found the way out! Score: ${s}`,
         backToMenu:     'Back to Menu',
+        backToEditor:   'Back to Editor',
 
         palette:        '🎨 Palette',
         edClear:        '🗑️ Clear',
@@ -184,6 +189,7 @@ const translations = {
         edMapSize:      'Dimensions:',
         edFileActions:  'File:',
         edGenDone:      '✓ Map generated!',
+        edGenPreview:   '📊 Estimated contents',
 
         // Map generator
         edGenTitle:     '🎲 Map Generator',
@@ -216,6 +222,7 @@ const translations = {
         tExit:     'Exit',      tTorch:    'Torch',
         tHealth:   'Health',    tSpider:   'Spider',
         tGhost:    'Ghost',     tPillar:   'Pillar',
+        tHealthSmall: 'Small Health',
 
         // Level names
         level1Name: 'Level 1 – Abandoned Mine',

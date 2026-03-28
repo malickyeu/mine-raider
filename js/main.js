@@ -4,7 +4,7 @@ import { T, BREAKABLE_TYPES, WALL_HP, DIFFICULTIES, GAME_VERSION } from './confi
 import { loadMap, extractEntities, getCampaignLevel, getCampaignLength, isWall, getTile } from './map.js';
 import { initInput, releasePointer } from './input.js';
 import { initRenderer, renderFrame } from './renderer.js';
-import { Player, Enemy, Treasure, HealthPack, Exit, Torch, Pillar, createEntities } from './entities.js';
+import { Player, Enemy, Treasure, HealthPack, SmallHealthPack, Exit, Torch, Pillar, createEntities } from './entities.js';
 import { initEditor, showEditor, rebuildEditorUI } from './editor.js';
 import { sfxPickup, sfxGem, sfxAttack, sfxDeath, sfxWin, sfxHeal, sfxEnemyDeath, sfxHitWood, sfxBreakWood } from './audio.js';
 import { toggleMinimap, toggleHelp, isHelpVisible, hideHelp } from './hud.js';
@@ -126,6 +126,7 @@ btnLang.addEventListener('click', () => {
 });
 overlayBtn.addEventListener('click', () => {
     if (state === 'nextlevel') switchState('game');
+    else if (gameMode === 'custom') switchState('editor');
     else switchState('menu');
 });
 
@@ -190,7 +191,7 @@ function switchState(newState) {
             overlayTitle.textContent = t('deathTitle');
             overlayTitle.style.color = '#ff4444';
             overlayText.textContent = `${t('deathScore')} ${player.score}`;
-            overlayBtn.textContent = t('backToMenu');
+            overlayBtn.textContent = gameMode === 'custom' ? t('backToEditor') : t('backToMenu');
             sfxDeath();
             releasePointer();
             break;
@@ -212,7 +213,7 @@ function switchState(newState) {
             overlayText.textContent = gameMode === 'campaign'
                 ? t('winAllText', getCampaignLength(), player.score)
                 : t('winCustomText', player.score);
-            overlayBtn.textContent = t('backToMenu');
+            overlayBtn.textContent = gameMode === 'custom' ? t('backToEditor') : t('backToMenu');
             sfxWin();
             releasePointer();
             break;
@@ -344,7 +345,7 @@ function gameLoop(now) {
                     ent.alive = false;
                     player.addScore(ent.value);
                     if (ent.type === T.GEM) sfxGem(); else sfxPickup();
-                } else if (ent instanceof HealthPack) {
+                } else if (ent instanceof HealthPack || ent instanceof SmallHealthPack) {
                     if (player.hp < player.maxHp) {
                         ent.alive = false;
                         player.heal(ent.healAmount);

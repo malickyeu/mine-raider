@@ -45,6 +45,24 @@ export function drawHUD(ctx, player, mapData, levelInfo) {
     ctx.textAlign = 'left';
     ctx.fillText(`${t('hp')}: ${hp}`, barX + 4, barY + 12);
 
+    // ── Stamina bar ──
+    const stBarY = barY + barH + 4;
+    const stBarH = 6;
+    const stRatio = player.stamina / player.staminaMax;
+    const stColor = stRatio > 0.5 ? '#00bbff' : stRatio > 0.2 ? '#ffcc00' : '#ff6622';
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(barX - 2, stBarY - 1, barW + 4, stBarH + 2);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(barX, stBarY, barW, stBarH);
+    ctx.fillStyle = stColor;
+    ctx.fillRect(barX, stBarY, barW * stRatio, stBarH);
+    if (player.sprinting) {
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = 'bold 8px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('⚡', barX + 2, stBarY + stBarH - 1);
+    }
+
     // ── Score ──
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillRect(barX - 2, barY - 26, 120, 20);
@@ -58,11 +76,22 @@ export function drawHUD(ctx, player, mapData, levelInfo) {
         const lvlText = `⛏ ${displayName}`;
         ctx.font = 'bold 12px monospace';
         ctx.textAlign = 'center';
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
         const tw = ctx.measureText(lvlText).width;
-        ctx.fillRect(SCREEN_W / 2 - tw / 2 - 8, 6, tw + 16, 20);
+
+        const hasDiff = !!levelInfo.difficulty;
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(SCREEN_W / 2 - tw / 2 - 8, 6, tw + 16, hasDiff ? 30 : 20);
+
         ctx.fillStyle = '#f0c040';
-        ctx.fillText(lvlText, SCREEN_W / 2, 20);
+        ctx.fillText(lvlText, SCREEN_W / 2, hasDiff ? 18 : 20);
+
+        if (hasDiff) {
+            const diffNames  = { easy: t('diffEasy'), normal: t('diffNormal'), hard: t('diffHard') };
+            const diffColors = { easy: '#66dd55', normal: '#f0c040', hard: '#ff7744' };
+            ctx.font = '9px monospace';
+            ctx.fillStyle = diffColors[levelInfo.difficulty] || '#f0c040';
+            ctx.fillText(diffNames[levelInfo.difficulty] || '', SCREEN_W / 2, 31);
+        }
     }
 
     // ── Minimap ──

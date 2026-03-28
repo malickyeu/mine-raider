@@ -1,6 +1,6 @@
 /* ── main.js ── game bootstrap, state machine, game loop ── */
 
-import { T, BREAKABLE_TYPES, WALL_HP } from './config.js';
+import { T, BREAKABLE_TYPES, WALL_HP, DIFFICULTIES, GAME_VERSION } from './config.js';
 import { loadMap, extractEntities, getCampaignLevel, getCampaignLength, isWall, getTile } from './map.js';
 import { initInput, releasePointer } from './input.js';
 import { initRenderer, renderFrame } from './renderer.js';
@@ -29,6 +29,14 @@ const helpClose     = document.getElementById('help-close');
 const btnPlay  = document.getElementById('btn-play');
 const btnEditor = document.getElementById('btn-editor');
 const btnLang  = document.getElementById('btn-lang');
+document.getElementById('game-version').textContent = `v${GAME_VERSION}`;
+
+const difficultyScreen  = document.getElementById('difficulty-screen');
+const diffScreenTitle   = document.getElementById('diff-screen-title');
+const diffChoiceEasy    = document.getElementById('diff-choice-easy');
+const diffChoiceNormal  = document.getElementById('diff-choice-normal');
+const diffChoiceHard    = document.getElementById('diff-choice-hard');
+const diffBackBtn       = document.getElementById('diff-back-btn');
 
 // ── State ──
 let state = 'menu';
@@ -40,6 +48,9 @@ let animFrame = null;
 let currentLevel = 0;
 let levelInfo = null;
 let gameMode = 'campaign';
+
+// ── Difficulty ──
+let selectedDifficulty = 'normal';
 
 // ── Breakable walls: "x,y" → remaining HP ──
 let breakableWalls = {};
@@ -55,11 +66,24 @@ initEditor(editorCanvas, editorPanel, null, () => {
 });
 
 // ── Refresh all UI text for current language ──
+function setDiffBtnContent(btn, icon, nameKey, descKey) {
+    btn.innerHTML =
+        `<span class="diff-choice-name">${icon} ${t(nameKey)}</span>` +
+        `<span class="diff-choice-desc">${t(descKey)}</span>`;
+}
+
 function refreshUIText() {
     btnPlay.textContent   = t('btnPlay');
     btnEditor.textContent = t('btnEditor');
     btnLang.textContent   = t('btnLang');
     menuSubtitle.textContent = t('subtitle');
+
+    // Difficulty screen
+    diffScreenTitle.textContent = t('diffScreenTitle');
+    setDiffBtnContent(diffChoiceEasy,   '⛏️', 'diffEasy',   'diffEasyDesc');
+    setDiffBtnContent(diffChoiceNormal, '🔥', 'diffNormal', 'diffNormalDesc');
+    setDiffBtnContent(diffChoiceHard,   '💀', 'diffHard',   'diffHardDesc');
+    diffBackBtn.textContent = t('diffBack');
 
     // Help overlay
     helpTitle.textContent = t('helpTitle');
@@ -83,11 +107,17 @@ function refreshUIText() {
 
 refreshUIText();
 
+// ── Difficulty screen handlers ──
+diffChoiceEasy.addEventListener('click',   () => { selectedDifficulty = 'easy';   switchState('game'); });
+diffChoiceNormal.addEventListener('click', () => { selectedDifficulty = 'normal'; switchState('game'); });
+diffChoiceHard.addEventListener('click',   () => { selectedDifficulty = 'hard';   switchState('game'); });
+diffBackBtn.addEventListener('click',      () => switchState('menu'));
+
 // ── Menu buttons ──
 btnPlay.addEventListener('click', () => {
     gameMode = 'campaign';
     currentLevel = 0;
-    switchState('game');
+    switchState('difficulty');
 });
 btnEditor.addEventListener('click', () => switchState('editor'));
 btnLang.addEventListener('click', () => {
@@ -106,6 +136,7 @@ let hKeyWasDown = false;
 window.addEventListener('keydown', e => {
     if (e.code === 'Escape') {
         if (isHelpVisible()) { hideHelp(); return; }
+        if (state === 'difficulty') { switchState('menu'); return; }
         if (state === 'game')   { releasePointer(); switchState('menu'); }
         if (state === 'editor') { switchState('menu'); }
     }
@@ -126,6 +157,7 @@ window.addEventListener('keyup', e => {
 function switchState(newState) {
     state = newState;
     menuScreen.style.display = 'none';
+    difficultyScreen.classList.remove('active');
     editorScreen.classList.remove('active');
     overlay.classList.remove('active');
     gameCanvas.style.display = 'none';
@@ -138,6 +170,10 @@ function switchState(newState) {
             releasePointer();
             // Reset player so next game always starts with full HP & zero score
             player = null;
+            break;
+        case 'difficulty':
+            difficultyScreen.classList.add('active');
+            releasePointer();
             break;
         case 'editor':
             editorScreen.classList.add('active');
@@ -192,11 +228,12 @@ function startGame() {
             name: rawMap.name,
             nameKey: rawMap.nameKey || null,
             current: currentLevel + 1,
-            total: getCampaignLength()
+            total: getCampaignLength(),
+            difficulty: selectedDifficulty,
         };
     } else {
         rawMap = loadMap();
-        levelInfo = { name: rawMap.name || 'Custom', current: 1, total: 1 };
+        levelInfo = { name: rawMap.name || 'Custom', current: 1, total: 1, difficulty: selectedDifficulty };
     }
 
     mapData = JSON.parse(JSON.stringify(rawMap));
@@ -209,7 +246,7 @@ function startGame() {
     player.score = prevScore;
     if (prevHp !== null) player.hp = prevHp;
 
-    entities = createEntities(entList);
+    entities = createEntities(entList, DIFFICULTIES[selectedDifficulty]);
     breakableWalls = {};
     lastTime = performance.now();
     gameLoop(lastTime);

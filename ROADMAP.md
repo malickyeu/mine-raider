@@ -1,7 +1,7 @@
 # ⛏️ Mine Raider – Roadmap
 
 > Živý dokument sledující plánované funkce a nápady pro další rozvoj hry.  
-> Poslední aktualizace: **2026-03-28** · rozšířeno na **16 plánovaných features**
+> Poslední aktualizace: **2026-03-28** · verze **0.1.0** · 16 features (2 hotovo, 14 zbývá)
 
 ---
 
@@ -20,10 +20,12 @@
 - [x] i18n: CZ 🇨🇿 / EN 🇬🇧
 - [x] Opakovatelné hraní po smrti / dohrání hry
 - [x] Generátor map v editoru (20×20, 32×32, 64×64, 128×128) s garantovaným přístupem k exitu
+- [x] Systém obtížností – Horník / Prospekter / Hlubokopáč (škáluje HP, rychlost, damage nepřátel)
+- [x] Sprint + stamina systém (`Shift`, stamina bar v HUD, drain/regen)
 
 ---
 
-## 🔝 Top 16 plánovaných features
+## 🔝 Plánované features
 
 ### 1. 🔦 Dynamické osvětlení (Torch flicker + kužel světla)
 - Pochodně vrhají reálně animované světlo (flicker efekt)
@@ -44,11 +46,6 @@
 - **Spike Trap** – dlaždice na zemi, spustí se při přechodu (animovaný overlay na podlaze)
 - **Rolling Boulder** – pohybující se objekt po chodbě, inspirováno Indiana Jones
 - Viditelné varování (jiná barva dlaždice) na nižší obtížnosti
-
-### 5. 📊 Systém obtížností
-- 3 úrovně: **Miner** (lehká) / **Prospector** (střední) / **Deep Delver** (těžká)
-- Mění HP nepřátel, jejich rychlost, frekvenci útoků a množství pokladů
-- Výběr na hlavním menu před spuštěním kampaně
 
 ### 6. 🏆 Globální žebříček skóre (high score)
 - Skóre, čas dohrání a obtížnost ukládány do `localStorage`
@@ -93,12 +90,6 @@
 - Infrastruktura (`AudioContext`, `OscillatorNode`, `GainNode`) je již připravena v `audio.js`
 - Modulace hlasitosti/tónu dle aktuálního HP nebo blízkosti nepřítele
 
-### 14. 🏃 Sprint + Stamina systém
-- Nové pole `stamina` v `Player`; držení `Shift` pohybuje hráčem rychlostí 1.6× `PLAYER_SPEED`
-- Stamina se při sprintu vyčerpává, při chůzi/stání se regeneruje
-- Malý stamina bar v `drawHUD` (vpravo od HP baru)
-- ~40 řádků, přidává taktické rozhodování při každém souboji a útěku
-
 ### 15. 🏹 Ranged zbraň (Kuše / Dynamit)
 - Sekundární zbraň přepínatelná číselnými klávesami vedle pickaxe
 - **Kuše** — hit-scan projektil přes `raycaster.js`, poškodí prvního nepřítele v linii
@@ -138,14 +129,14 @@ Nápady v ranější fázi nebo vyžadující větší diskusi:
 
 ```
 Sprint 1 (rychlé výhry):
-  → #5  Obtížnosti          (config change)
-  → #6  High score          (localStorage)
-  → #11 Head Bob & Shake    (~30 řádků, okamžitý feel upgrade)
-  → #14 Sprint + Stamina    (~40 řádků, taktický dopad)
+  → ✅ #5  Obtížnosti          (hotovo)
+  → #6  High score            (localStorage)
+  → #11 Head Bob & Shake      (~30 řádků, okamžitý feel upgrade)
+  → ✅ #14 Sprint + Stamina    (hotovo)
 
 Sprint 2 (gameplay hloubka):
   → #2  Klíče & dveře
-  → #12 Otevíratelné dveře  (T.DOOR tile + doorState)
+  → #12 Otevíratelné dveře    (T.DOOR tile + doorState)
   → #3  Výbušné sudy
   → #4  Pasti
 

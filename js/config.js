@@ -1,5 +1,7 @@
 /* ── config.js ── game-wide constants ── */
 
+export const GAME_VERSION = '0.1.0';
+
 export const SCREEN_W = 640;
 export const SCREEN_H = 400;
 
@@ -17,6 +19,19 @@ export const PLAYER_MAX_HP = 100;
 export const ENEMY_SPEED = 1.4;
 export const ENEMY_DAMAGE = 12;          // per hit
 export const ENEMY_HIT_INTERVAL = 0.8;   // sec between hits
+
+// Sprint & Stamina
+export const SPRINT_MULT        = 1.6;   // speed multiplier while sprinting
+export const STAMINA_MAX        = 100;
+export const STAMINA_DRAIN      = 35;    // per second while sprinting
+export const STAMINA_REGEN      = 25;    // per second while not sprinting
+
+// Difficulty presets  (multipliers applied to base enemy stats)
+export const DIFFICULTIES = {
+    easy:   { enemyHpMult: 0.75, enemySpeedMult: 0.8,  enemyDamageMult: 0.7,  enemyHitIntervalMult: 1.35 },
+    normal: { enemyHpMult: 1.0,  enemySpeedMult: 1.0,  enemyDamageMult: 1.0,  enemyHitIntervalMult: 1.0  },
+    hard:   { enemyHpMult: 1.5,  enemySpeedMult: 1.3,  enemyDamageMult: 1.4,  enemyHitIntervalMult: 0.7  },
+};
 
 export const MINIMAP_SCALE = 6;          // px per tile
 export const MINIMAP_MARGIN = 10;

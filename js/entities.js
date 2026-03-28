@@ -1,7 +1,8 @@
 /* ── entities.js ── game entities: player, treasures, enemies, exit ── */
 
 import { T, PLAYER_MAX_HP, PLAYER_SPEED, PLAYER_ROT_SPEED, PLAYER_MOUSE_SENS,
-         ENEMY_SPEED, ENEMY_DAMAGE, ENEMY_HIT_INTERVAL } from './config.js';
+         ENEMY_SPEED, ENEMY_DAMAGE, ENEMY_HIT_INTERVAL,
+         SPRINT_MULT, STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN } from './config.js';
 import { isDown, consumeMouseDX } from './input.js';
 import { moveWithCollision } from './collision.js';
 import { isWall } from './map.js';
@@ -18,6 +19,9 @@ export class Player {
         this.attacking = false;
         this.attackTimer = 0;
         this.bobPhase = 0;
+        this.stamina = STAMINA_MAX;
+        this.staminaMax = STAMINA_MAX;
+        this.sprinting = false;
     }
 
     update(dt, mapData) {
@@ -33,25 +37,35 @@ export class Player {
         const cosA = Math.cos(this.angle);
         const sinA = Math.sin(this.angle);
 
+        // ── Sprint & Stamina ──
+        const wantSprint = isDown('ShiftLeft') || isDown('ShiftRight');
+        this.sprinting = wantSprint && this.stamina > 0;
+        if (this.sprinting) {
+            this.stamina = Math.max(0, this.stamina - STAMINA_DRAIN * dt);
+        } else {
+            this.stamina = Math.min(this.staminaMax, this.stamina + STAMINA_REGEN * dt);
+        }
+        const speedMult = this.sprinting ? SPRINT_MULT : 1.0;
+
         if (isDown('KeyW') || isDown('ArrowUp')) {
-            moveX += cosA * PLAYER_SPEED * dt;
-            moveY += sinA * PLAYER_SPEED * dt;
+            moveX += cosA * PLAYER_SPEED * speedMult * dt;
+            moveY += sinA * PLAYER_SPEED * speedMult * dt;
         }
         if (isDown('KeyS') || isDown('ArrowDown')) {
-            moveX -= cosA * PLAYER_SPEED * dt;
-            moveY -= sinA * PLAYER_SPEED * dt;
+            moveX -= cosA * PLAYER_SPEED * speedMult * dt;
+            moveY -= sinA * PLAYER_SPEED * speedMult * dt;
         }
         if (isDown('KeyA')) {
-            moveX += sinA * PLAYER_SPEED * dt;
-            moveY -= cosA * PLAYER_SPEED * dt;
+            moveX += sinA * PLAYER_SPEED * speedMult * dt;
+            moveY -= cosA * PLAYER_SPEED * speedMult * dt;
         }
         if (isDown('KeyD')) {
-            moveX -= sinA * PLAYER_SPEED * dt;
-            moveY += cosA * PLAYER_SPEED * dt;
+            moveX -= sinA * PLAYER_SPEED * speedMult * dt;
+            moveY += cosA * PLAYER_SPEED * speedMult * dt;
         }
 
         if (moveX !== 0 || moveY !== 0) {
-            this.bobPhase += dt * 10;
+            this.bobPhase += dt * 10 * speedMult;
         }
 
         const result = moveWithCollision(mapData, this.x, this.y, moveX, moveY);
@@ -130,9 +144,9 @@ export class Exit extends Entity {
 
 // ── Enemy base ──
 export class Enemy extends Entity {
-    constructor(type, x, y) {
+    constructor(type, x, y, difficulty = null) {
         super(type, x, y);
-        // Per-type stats
+        // Per-type base stats
         switch (type) {
             case T.SKELETON:
                 this.hp = 3; this.speed = ENEMY_SPEED * 0.7; this.damage = ENEMY_DAMAGE * 1.2; break;
@@ -142,6 +156,15 @@ export class Enemy extends Entity {
                 this.hp = 4; this.speed = ENEMY_SPEED * 0.5; this.damage = ENEMY_DAMAGE * 1.5; this.phaseThrough = true; break;
             default: // BAT
                 this.hp = 2; this.speed = ENEMY_SPEED; this.damage = ENEMY_DAMAGE; break;
+        }
+        // Apply difficulty multipliers
+        if (difficulty) {
+            this.hp       = Math.max(1, Math.round(this.hp * difficulty.enemyHpMult));
+            this.speed   *= difficulty.enemySpeedMult;
+            this.damage  *= difficulty.enemyDamageMult;
+            this.hitInterval = ENEMY_HIT_INTERVAL * difficulty.enemyHitIntervalMult;
+        } else {
+            this.hitInterval = ENEMY_HIT_INTERVAL;
         }
         this.hitCooldown = 0;
         this.chasing = false;
@@ -199,7 +222,7 @@ export class Enemy extends Entity {
         // Contact damage to player
         if (dist < 0.6 && this.hitCooldown <= 0) {
             player.takeDamage(this.damage);
-            this.hitCooldown = ENEMY_HIT_INTERVAL;
+            this.hitCooldown = this.hitInterval;
         }
     }
 
@@ -234,7 +257,7 @@ export class Pillar extends Entity {
 }
 
 /** Create entity instances from extracted entity list */
-export function createEntities(entityList) {
+export function createEntities(entityList, difficulty = null) {
     const entities = [];
     for (const e of entityList) {
         switch (e.type) {
@@ -246,7 +269,7 @@ export function createEntities(entityList) {
             case T.SKELETON:
             case T.SPIDER:
             case T.GHOST:
-                entities.push(new Enemy(e.type, e.x, e.y));
+                entities.push(new Enemy(e.type, e.x, e.y, difficulty));
                 break;
             case T.EXIT:
                 entities.push(new Exit(e.x, e.y));

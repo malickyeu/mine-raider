@@ -4,6 +4,16 @@ const STORAGE_KEY = 'mine_raider_lang';
 
 const translations = {
     cs: {
+        // Difficulty screen
+        diffScreenTitle: 'Vyber obtížnost',
+        diffEasy:        'Horník',
+        diffEasyDesc:    'Pomalejší a slabší nepřátelé',
+        diffNormal:      'Prospekter',
+        diffNormalDesc:  'Standardní výzva',
+        diffHard:        'Hlubokopáč',
+        diffHardDesc:    'Rychlí a silní nepřátelé',
+        diffBack:        '← Zpět',
+
         // Menu
         title:          '⛏️ Mine Raider',
         subtitle:       'Poklad starých dolů',
@@ -19,6 +29,7 @@ const translations = {
         helpTitle:      '📖 Ovládání',
         helpLines: [
             'WASD / Šipky — Pohyb',
+            'SHIFT — Sprint (spotřebovává staminu)',
             'Myš — Rozhlížení',
             'SPACE — Útok krumpáčem',
             'M — Skrýt / zobrazit mapu',
@@ -107,9 +118,18 @@ const translations = {
     },
 
     en: {
+        // Difficulty screen
+        diffScreenTitle: 'Choose Difficulty',
+        diffEasy:        'Miner',
+        diffEasyDesc:    'Slower and weaker enemies',
+        diffNormal:      'Prospector',
+        diffNormalDesc:  'Standard challenge',
+        diffHard:        'Deep Delver',
+        diffHardDesc:    'Fast and tough enemies',
+        diffBack:        '← Back',
+
         title:          '⛏️ Mine Raider',
         subtitle:       'Treasure of the Old Mines',
-        btnPlay:        '▶ Play',
         btnEditor:      '🗺️ Map Editor',
         btnLang:        '🌐 Čeština',
 
@@ -119,6 +139,7 @@ const translations = {
         helpTitle:      '📖 Controls',
         helpLines: [
             'WASD / Arrows — Move',
+            'SHIFT — Sprint (uses stamina)',
             'Mouse — Look around',
             'SPACE — Pickaxe attack',
             'SPACE at wood wall — Break wall (3 hits)',

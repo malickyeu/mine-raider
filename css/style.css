@@ -58,6 +58,91 @@ body {
     background: #5a3a10;
 }
 
+#game-version {
+    position: absolute;
+    bottom: 12px;
+    right: 16px;
+    font-size: 0.72rem;
+    color: #5a4020;
+    letter-spacing: 0.04em;
+}
+
+/* ── Difficulty screen ── */
+#difficulty-screen {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at center, #2a1a0a 0%, #0a0500 80%);
+    z-index: 100;
+}
+
+#difficulty-screen.active {
+    display: flex;
+}
+
+#difficulty-screen h2 {
+    font-size: 1.6rem;
+    color: #f0c040;
+    text-shadow: 0 0 20px #f0a00055;
+    margin-bottom: 1.4em;
+    font-weight: normal;
+    letter-spacing: 0.06em;
+}
+
+.diff-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 300px;
+    padding: 14px 20px;
+    margin: 7px;
+    font-family: 'Courier New', monospace;
+    background: #3a2a10;
+    color: #f0c040;
+    border: 2px solid #f0a000;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.diff-choice:hover {
+    background: #5a3a10;
+}
+
+.diff-choice-name {
+    font-size: 1.05rem;
+    font-weight: bold;
+    display: block;
+}
+
+.diff-choice-desc {
+    font-size: 0.78rem;
+    color: #c89040;
+    margin-top: 5px;
+    display: block;
+    font-weight: normal;
+}
+
+#diff-back-btn {
+    width: 160px;
+    padding: 10px;
+    margin-top: 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.88rem;
+    background: #1a1008;
+    color: #806020;
+    border: 1px solid #3a2408;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+#diff-back-btn:hover {
+    background: #2a1a10;
+    color: #c89040;
+}
+
 /* ── Game canvas ── */
 #game-canvas {
     display: block;

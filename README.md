@@ -24,10 +24,12 @@ Everything — wall textures, sprites, sounds — is **procedurally generated at
 | **Collectibles** | Gold coins (100 pts), Gemstones (500 pts), Health packs |
 | **Decorations** | Torches (ambient), Stone pillars (block movement, transparent sprite) |
 | **Campaign** | 5 hand-crafted levels of increasing size and difficulty |
+| **Difficulty** | Miner / Prospector / Deep Delver — scales enemy HP, speed, damage and attack rate |
+| **Sprint** | Hold `Shift` to move 1.6× faster; stamina bar in HUD drains and regenerates |
 | **Map editor** | Grid-based editor with full palette, level selector, resize, save/load |
 | **i18n** | Czech 🇨🇿 / English 🇬🇧 UI language switch (persisted in localStorage) |
 | **Audio** | Web Audio oscillator-based SFX — no audio files needed |
-| **HUD** | Health bar, score, minimap with toggle, level name |
+| **HUD** | Health bar, stamina bar, score, minimap with toggle, level name + difficulty badge |
 | **Help overlay** | In-game help screen (press `H`) |
 
 ---
@@ -62,6 +64,7 @@ npm run dev
 | Key | Action |
 |---|---|
 | `W A S D` / Arrow keys | Move |
+| `Shift` | Sprint (1.6× speed, drains stamina) |
 | Mouse | Look around (click canvas to lock pointer) |
 | `Space` | Swing pickaxe — attack enemies, break wood walls |
 | `M` | Toggle minimap |

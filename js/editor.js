@@ -18,7 +18,7 @@ let activeTab = 'tiles';
 const PANEL_W = 224; // matches CSS width
 
 const ALL_TILES = [
-    T.EMPTY, T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON,
+    T.EMPTY, T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.DOOR,
     T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.SPIDER, T.GHOST,
     T.EXIT, T.TORCH, T.HEALTH, T.HEALTH_SMALL, T.PILLAR,
 ];
@@ -402,6 +402,7 @@ function drawGrid() {
         [T.BAT]:      '🦇', [T.SKELETON]: '💀', [T.SPIDER]:'🕷️',
         [T.GHOST]:    '👻', [T.EXIT]:      '🚪', [T.TORCH]: '🔥',
         [T.HEALTH]:   '❤️', [T.HEALTH_SMALL]: '🩹', [T.PILLAR]: '🪨',
+        [T.DOOR]:     '🚪',
     };
     for (let y = 0; y < mapData.height; y++) {
         for (let x = 0; x < mapData.width; x++) {

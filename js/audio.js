@@ -76,3 +76,9 @@ export function sfxBreakWood() {
     setTimeout(() => playTone(180, 0.08, 'sawtooth', 0.12), 40);
     setTimeout(() => playTone(100, 0.18, 'sawtooth', 0.1),  90);
 }
+
+export function sfxDoorOpen() {
+    playTone(180, 0.12, 'square', 0.08);
+    setTimeout(() => playTone(250, 0.15, 'sine', 0.06), 80);
+}
+

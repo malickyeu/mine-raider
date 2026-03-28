@@ -177,6 +177,27 @@ function genIron() {
     return c;
 }
 
+function genDoor() {
+    const c = createCanvas(TEX_SIZE, TEX_SIZE);
+    const ctx = c.getContext('2d');
+    noise(ctx, TEX_SIZE, TEX_SIZE, 110, 75, 25, 20);
+    // Door frame
+    ctx.fillStyle = 'rgba(50,30,10,0.6)';
+    ctx.fillRect(0, 0, 3, TEX_SIZE);
+    ctx.fillRect(TEX_SIZE - 3, 0, 3, TEX_SIZE);
+    ctx.fillRect(0, 0, TEX_SIZE, 3);
+    ctx.fillRect(0, TEX_SIZE - 3, TEX_SIZE, 3);
+    // Cross brace
+    ctx.strokeStyle = 'rgba(60,35,10,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(3, 3); ctx.lineTo(TEX_SIZE - 3, TEX_SIZE - 3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(TEX_SIZE - 3, 3); ctx.lineTo(3, TEX_SIZE - 3); ctx.stroke();
+    // Handle
+    ctx.fillStyle = '#aa8833';
+    ctx.beginPath(); ctx.arc(TEX_SIZE - 12, TEX_SIZE / 2, 3, 0, Math.PI * 2); ctx.fill();
+    return c;
+}
+
 const generators = {
     [T.STONE]:   genStone,
     [T.WOOD]:    genWood,
@@ -184,6 +205,7 @@ const generators = {
     [T.MOSSY]:   genMossy,
     [T.CRYSTAL]: genCrystal,
     [T.IRON]:    genIron,
+    [T.DOOR]:    genDoor,
 };
 
 export function getTexture(tileType) {

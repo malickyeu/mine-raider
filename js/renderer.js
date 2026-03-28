@@ -1,6 +1,6 @@
 /* ── renderer.js ── orchestrates all rendering: ceiling, floor, walls, sprites, HUD ── */
 
-import { SCREEN_W, SCREEN_H } from './config.js';
+import { SCREEN_W, SCREEN_H, T } from './config.js';
 import { castRays } from './raycaster.js';
 import { getTexture, getTextureSize } from './textures.js';
 import { renderSprites } from './sprites.js';
@@ -17,7 +17,17 @@ export function initRenderer(canvasEl) {
     ctx.imageSmoothingEnabled = false;
 }
 
-export function renderFrame(mapData, player, entities, levelInfo, breakableWalls = {}) {
+export function renderFrame(mapData, player, entities, levelInfo, breakableWalls = {}, doorStates = {}) {
+    // ── Head bob + screen shake offset ──
+    const bobY = Math.sin(player.bobPhase) * 3;
+    const shakeX = player.shakeTimer > 0 ? (Math.random() - 0.5) * 8 * player.shakeTimer : 0;
+    const shakeY = player.shakeTimer > 0 ? (Math.random() - 0.5) * 6 * player.shakeTimer : 0;
+    const offY = bobY + shakeY;
+    const offX = shakeX;
+
+    ctx.save();
+    ctx.translate(offX, offY);
+
     // ── Ceiling (dark grey-brown) ──
     ctx.fillStyle = '#1a1510';
     ctx.fillRect(0, 0, SCREEN_W, SCREEN_H / 2);
@@ -44,6 +54,14 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
     const texSize = getTextureSize();
 
     const drawColumn = (col, dist, tileType, texX, side, mx, my) => {
+        // ── Door: offset texture by open amount, skip if fully open ──
+        const doorKey = `${mx},${my}`;
+        const ds = doorStates[doorKey];
+        if (tileType === T.DOOR && ds) {
+            texX = texX - ds.open;         // slide texture
+            if (texX < 0) return;          // part of door that has slid away
+        }
+
         const lineHeight = SCREEN_H / dist;
         const drawStart = Math.floor((SCREEN_H - lineHeight) / 2);
         const drawEnd = Math.ceil(drawStart + lineHeight);
@@ -111,9 +129,10 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
     }
 
     // ── View bob ──
-    // (handled via player bobPhase for slight screen shake - could add later)
+    // (applied via ctx.translate at frame start)
+    ctx.restore();
 
-    // ── HUD ──
+    // ── HUD (drawn without bob/shake offset) ──
     drawHUD(ctx, player, mapData, levelInfo);
 
     // ── "Click to play" hint ──

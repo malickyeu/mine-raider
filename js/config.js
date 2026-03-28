@@ -1,6 +1,6 @@
 /* ── config.js ── game-wide constants ── */
 
-export const GAME_VERSION = '0.1.0';
+export const GAME_VERSION = '0.2.0';
 
 export const SCREEN_W = 640;
 export const SCREEN_H = 400;
@@ -57,9 +57,10 @@ export const T = {
     GHOST:    19,
     PILLAR:   20,   // decorative column – transparent sprite, blocks movement
     HEALTH_SMALL: 21, // small health pack – restores 15 HP
+    DOOR:         22, // openable door – press E to open
 };
 
-export const WALL_TYPES = new Set([T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON]);
+export const WALL_TYPES = new Set([T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.DOOR]);
 export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.EXIT, T.TORCH, T.HEALTH, T.SPIDER, T.GHOST, T.PILLAR, T.HEALTH_SMALL]);
 
 // Breakable walls: tile → initial HP
@@ -87,6 +88,7 @@ export const TILE_LABEL_KEYS = {
     [T.GHOST]:    'tGhost',
     [T.PILLAR]:   'tPillar',
     [T.HEALTH_SMALL]: 'tHealthSmall',
+    [T.DOOR]:     'tDoor',
 };
 
 export const TILE_COLORS = {
@@ -109,4 +111,5 @@ export const TILE_COLORS = {
     [T.GHOST]:    '#aaddff',
     [T.PILLAR]:   '#887766',
     [T.HEALTH_SMALL]: '#cc6688',
+    [T.DOOR]:     '#8B6914',
 };

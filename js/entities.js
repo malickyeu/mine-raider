@@ -22,6 +22,7 @@ export class Player {
         this.staminaMax = STAMINA_MAX;
         this.sprinting = false;
         this.staminaExhausted = false;
+        this.shakeTimer = 0;
     }
 
     update(dt, mapData) {
@@ -85,6 +86,7 @@ export class Player {
 
         // ── Attack ──
         if (this.attackTimer > 0) this.attackTimer -= dt;
+        if (this.shakeTimer > 0) this.shakeTimer -= dt;
         if (isDown('Space') && this.attackTimer <= 0) {
             this.attacking = true;
             this.attackTimer = 0.4;
@@ -95,6 +97,7 @@ export class Player {
 
     takeDamage(amount) {
         this.hp = Math.max(0, this.hp - amount);
+        this.shakeTimer = 0.2;
     }
 
     addScore(pts) {

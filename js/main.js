@@ -2,11 +2,11 @@
 
 import { T, BREAKABLE_TYPES, WALL_HP, DIFFICULTIES, GAME_VERSION } from './config.js';
 import { loadMap, extractEntities, getCampaignLevel, getCampaignLength, isWall, getTile } from './map.js';
-import { initInput, releasePointer } from './input.js';
+import { initInput, releasePointer, isDown } from './input.js';
 import { initRenderer, renderFrame } from './renderer.js';
 import { Player, Enemy, Treasure, HealthPack, SmallHealthPack, Exit, Torch, Pillar, createEntities } from './entities.js';
 import { initEditor, showEditor, rebuildEditorUI } from './editor.js';
-import { sfxPickup, sfxGem, sfxAttack, sfxDeath, sfxWin, sfxHeal, sfxEnemyDeath, sfxHitWood, sfxBreakWood } from './audio.js';
+import { sfxPickup, sfxGem, sfxAttack, sfxDeath, sfxWin, sfxHeal, sfxEnemyDeath, sfxHitWood, sfxBreakWood, sfxDoorOpen } from './audio.js';
 import { toggleMinimap, toggleHelp, isHelpVisible, hideHelp } from './hud.js';
 import { t, toggleLang } from './i18n.js';
 
@@ -54,6 +54,9 @@ let selectedDifficulty = 'normal';
 
 // ── Breakable walls: "x,y" → remaining HP ──
 let breakableWalls = {};
+
+// ── Door states: "x,y" → { open: 0..1, opening: bool } ──
+let doorStates = {};
 
 // ── Init ──
 initInput(gameCanvas);
@@ -249,6 +252,7 @@ function startGame() {
 
     entities = createEntities(entList, DIFFICULTIES[selectedDifficulty]);
     breakableWalls = {};
+    doorStates = {};
     lastTime = performance.now();
     gameLoop(lastTime);
 }
@@ -270,6 +274,37 @@ function gameLoop(now) {
     // Don't update game while help is open
     if (!isHelpVisible()) {
         player.update(dt, mapData);
+
+        // ── Open doors (E key) ──
+        if (isDown('KeyE')) {
+            const cosA = Math.cos(player.angle);
+            const sinA = Math.sin(player.angle);
+            for (let d = 0.5; d <= 1.5; d += 0.25) {
+                const dx = Math.floor(player.x + cosA * d);
+                const dy = Math.floor(player.y + sinA * d);
+                if (getTile(mapData, dx, dy) === T.DOOR) {
+                    const key = `${dx},${dy}`;
+                    if (!doorStates[key]) {
+                        doorStates[key] = { open: 0, opening: true };
+                        sfxDoorOpen();
+                    }
+                    break;
+                }
+            }
+        }
+
+        // ── Animate doors ──
+        for (const key in doorStates) {
+            const ds = doorStates[key];
+            if (ds.opening && ds.open < 1) {
+                ds.open = Math.min(1, ds.open + dt * 2); // ~0.5 s to fully open
+                if (ds.open >= 1) {
+                    // Remove wall from map so player/enemies can walk through
+                    const [wx, wy] = key.split(',').map(Number);
+                    mapData.tiles[wy][wx] = T.EMPTY;
+                }
+            }
+        }
 
         // ── Pillar collision (push player out) ──
         for (const ent of entities) {
@@ -367,7 +402,7 @@ function gameLoop(now) {
         if (!player.alive) { switchState('gameover'); return; }
     }
 
-    renderFrame(mapData, player, entities, levelInfo, breakableWalls);
+    renderFrame(mapData, player, entities, levelInfo, breakableWalls, doorStates);
     animFrame = requestAnimationFrame(gameLoop);
 }
 

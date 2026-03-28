@@ -1,7 +1,7 @@
 # ⛏️ Mine Raider – Roadmap
 
 > Živý dokument sledující plánované funkce a nápady pro další rozvoj hry.  
-> Poslední aktualizace: **2026-03-28** · verze **0.1.0** · 16 features (2 hotovo, 14 zbývá)
+> Poslední aktualizace: **2026-03-28** · verze **0.2.0** · 16 features (4 hotovo, 12 zbývá)
 
 ---
 
@@ -22,6 +22,8 @@
 - [x] Generátor map v editoru (20×20, 32×32, 64×64, 128×128) s garantovaným přístupem k exitu
 - [x] Systém obtížností – Horník / Prospekter / Hlubokopáč (škáluje HP, rychlost, damage nepřátel)
 - [x] Sprint + stamina systém (`Shift`, stamina bar v HUD, drain/regen)
+- [x] Head Bob & Screen Shake (`bobPhase` Y-offset + `shakeTimer` při zásahu)
+- [x] Otevíratelné dveře (`T.DOOR`, klávesa `E`, animovaný posun textury)
 
 ---
 
@@ -72,17 +74,6 @@
 - Zobrazí: název dalšího levelu, skóre za aktuální level, čas průchodu
 - Postupně se odkrývající příběh o záhadách starých dolů (několik řádků textu)
 
-### 11. 🎯 Head Bob & Screen Shake
-- `player.bobPhase` je již tracked v `Player.update`, ale nikdy nepoužit v `renderFrame`
-- Zadrátovat `bobPhase` do Y-offsetu pro veškeré renderování — pocit živého pohybu
-- Přidat `shakeTimer` — krátkodobý náhodný posun obrazu při obdržení poškození
-- ~30 řádků kódu, obrovský nárůst pocitu „živosti" hry
-
-### 12. 🚪 Otevíratelné dveře (Sliding Walls)
-- Quintessential Wolf3D feature — nový tile typ `T.DOOR` který se vysouvá klávesou `E`
-- `doorState` mapa (podobně jako `breakableWalls`), animovaný posun textury
-- `castRays` musí zvládnout částečně otevřené dveřní sloupce
-- Nová procedurální textura dveří v `textures.js` — střední úsilí, obrovský herní dopad
 
 ### 13. 🎵 Ambientní soundtrack dolu
 - Loopující procedurální ambientní skladba: nízký dronující oscilátor + filtrovaný šum
@@ -131,12 +122,12 @@ Nápady v ranější fázi nebo vyžadující větší diskusi:
 Sprint 1 (rychlé výhry):
   → ✅ #5  Obtížnosti          (hotovo)
   → #6  High score            (localStorage)
-  → #11 Head Bob & Shake      (~30 řádků, okamžitý feel upgrade)
+  → ✅ #11 Head Bob & Shake      (hotovo)
   → ✅ #14 Sprint + Stamina    (hotovo)
 
 Sprint 2 (gameplay hloubka):
   → #2  Klíče & dveře
-  → #12 Otevíratelné dveře    (T.DOOR tile + doorState)
+  → ✅ #12 Otevíratelné dveře    (hotovo)
   → #3  Výbušné sudy
   → #4  Pasti
 

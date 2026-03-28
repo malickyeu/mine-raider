@@ -1,6 +1,6 @@
 /* ── renderer.js ── orchestrates all rendering: ceiling, floor, walls, sprites, HUD ── */
 
-import { SCREEN_W, SCREEN_H, T } from './config.js';
+import { SCREEN_W, SCREEN_H, T, FOV, HALF_FOV } from './config.js';
 import { castRays } from './raycaster.js';
 import { getTexture, getTextureSize } from './textures.js';
 import { renderSprites } from './sprites.js';
@@ -8,6 +8,10 @@ import { drawHUD } from './hud.js';
 
 let ctx;
 let canvas;
+
+// ── Lighting constants ──
+const TORCH_RANGE   = 4.8;   // units; torch illumination radius
+const TORCH_FALLOFF = 1.8;   // exponent for distance attenuation
 
 export function initRenderer(canvasEl) {
     canvas = canvasEl;
@@ -18,6 +22,27 @@ export function initRenderer(canvasEl) {
 }
 
 export function renderFrame(mapData, player, entities, levelInfo, breakableWalls = {}, doorStates = {}) {
+    // ── Pre-filter nearby torches for lighting ──
+    const TR2 = (TORCH_RANGE + 2) * (TORCH_RANGE + 2);
+    const nearbyTorches = entities.filter(e => {
+        if (!e.alive || e.type !== T.TORCH) return false;
+        const dx = e.x - player.x, dy = e.y - player.y;
+        return dx * dx + dy * dy < TR2;
+    });
+
+    // ── Closest torch ambient (for floor/ceiling warmth) ──
+    let closestTorchBrightness = 0;
+    for (const torch of nearbyTorches) {
+        const dx = torch.x - player.x, dy = torch.y - player.y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < TORCH_RANGE) {
+            const flicker = 0.7 + 0.3 * Math.sin(torch.flickerPhase) * Math.sin(torch.flickerPhase * 2.3 + 1.1);
+            const b = Math.pow(Math.max(0, 1 - d / TORCH_RANGE), TORCH_FALLOFF) * flicker;
+            closestTorchBrightness = Math.max(closestTorchBrightness, b);
+        }
+    }
+    const torchAmbient = closestTorchBrightness * 0.35;
+
     // ── Head bob + screen shake offset ──
     const bobY = Math.sin(player.bobPhase) * 3;
     const shakeX = player.shakeTimer > 0 ? (Math.random() - 0.5) * 8 * player.shakeTimer : 0;
@@ -28,12 +53,19 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
     ctx.save();
     ctx.translate(offX, offY);
 
-    // ── Ceiling (dark grey-brown) ──
-    ctx.fillStyle = '#1a1510';
+    // ── Ceiling ──
+    // Mix from pitch-black towards warm brown depending on torch ambient
+    const ceilR = Math.round(26 + torchAmbient * 60);
+    const ceilG = Math.round(21 + torchAmbient * 30);
+    const ceilB = Math.round(16 + torchAmbient * 5);
+    ctx.fillStyle = `rgb(${ceilR},${ceilG},${ceilB})`;
     ctx.fillRect(0, 0, SCREEN_W, SCREEN_H / 2);
 
-    // ── Floor (dark brown/dirt) ──
-    ctx.fillStyle = '#2a2015';
+    // ── Floor ──
+    const floorR = Math.round(42 + torchAmbient * 80);
+    const floorG = Math.round(32 + torchAmbient * 40);
+    const floorB = Math.round(21 + torchAmbient * 8);
+    ctx.fillStyle = `rgb(${floorR},${floorG},${floorB})`;
     ctx.fillRect(0, SCREEN_H / 2, SCREEN_W, SCREEN_H / 2);
 
     // ── Floor gradient for depth ──
@@ -75,11 +107,9 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
         const wallKey = `${mx},${my}`;
         const remaining = breakableWalls[wallKey];
         if (remaining !== undefined) {
-            // remaining: 2 = 1 hit, 1 = 2 hits, drawn darker each stage
             const damageRatio = 1 - remaining / 3;
             ctx.fillStyle = `rgba(0,0,0,${damageRatio * 0.55})`;
             ctx.fillRect(col, drawStart, 1, drawEnd - drawStart);
-            // Add a lighter "crack" stripe in center for visual interest
             if (damageRatio > 0.5) {
                 ctx.fillStyle = `rgba(60,30,10,0.4)`;
                 ctx.fillRect(col, drawStart + (drawEnd - drawStart) * 0.3,
@@ -87,24 +117,75 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
             }
         }
 
-        // Distance fog
-        const fogAlpha = Math.min(0.85, dist / 12);
+        // ── Dynamic lighting ──
+        const rayAngle = player.angle - HALF_FOV + (col / SCREEN_W) * FOV;
+
+        // 1. Base fog (no flashlight = very dark mine)
+        let fogAlpha;
+        if (!player.hasFlashlight || !player.flashlightOn) {
+            fogAlpha = Math.min(0.96, Math.max(0, (dist - 1.5) / 4.5));
+        } else {
+            // With flashlight: base falloff is gentler
+            fogAlpha = Math.min(0.92, Math.max(0, (dist - 2.5) / 9.5));
+            // Flashlight cone: reduce fog within player's facing angle
+            let angleDiff = rayAngle - player.angle;
+            // normalise to [-π, π]
+            angleDiff -= Math.round(angleDiff / (Math.PI * 2)) * Math.PI * 2;
+            if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            const absDiff = Math.abs(angleDiff);
+            const coneHalf = FOV * 0.52; // slightly wider than view
+            if (absDiff < coneHalf) {
+                const coneT    = Math.pow(1 - absDiff / coneHalf, 1.5);
+                const distFade = Math.max(0, 1 - dist / 16);
+                fogAlpha = Math.max(0, fogAlpha - coneT * distFade * 0.88);
+            }
+        }
+
+        // 2. Torch proximity lighting on the wall surface
+        const hitX = player.x + Math.cos(rayAngle) * dist;
+        const hitY = player.y + Math.sin(rayAngle) * dist;
+        let torchBrightness = 0;
+
+        for (const torch of nearbyTorches) {
+            const tdx = hitX - torch.x;
+            const tdy = hitY - torch.y;
+            const td2 = tdx * tdx + tdy * tdy;
+            if (td2 < TORCH_RANGE * TORCH_RANGE) {
+                const td = Math.sqrt(td2);
+                const flicker = 0.7 + 0.3 *
+                    Math.sin(torch.flickerPhase) *
+                    Math.sin(torch.flickerPhase * 2.3 + 1.1);
+                const b = Math.pow(Math.max(0, 1 - td / TORCH_RANGE), TORCH_FALLOFF) * flicker * 0.9;
+                torchBrightness = Math.max(torchBrightness, b);
+            }
+        }
+
+        fogAlpha = Math.max(0, fogAlpha - torchBrightness);
+
+        // 3. Apply fog
         if (fogAlpha > 0.01) {
-            ctx.fillStyle = `rgba(10,8,5,${fogAlpha})`;
+            ctx.fillStyle = `rgba(10,8,5,${fogAlpha.toFixed(3)})`;
+            ctx.fillRect(col, drawStart, 1, drawEnd - drawStart);
+        }
+
+        // 4. Warm torch tint on illuminated surfaces
+        if (torchBrightness > 0.05) {
+            const tintA = (torchBrightness * 0.22).toFixed(3);
+            ctx.fillStyle = `rgba(255,130,20,${tintA})`;
             ctx.fillRect(col, drawStart, 1, drawEnd - drawStart);
         }
     };
 
+    const lightingState = { nearbyTorches, torchRange: TORCH_RANGE, torchFalloff: TORCH_FALLOFF };
     const depthBuffer = castRays(mapData, player.x, player.y, player.angle, drawColumn, doorStates);
 
     // ── Sprites ──
-    renderSprites(ctx, entities, player, depthBuffer);
+    renderSprites(ctx, entities, player, depthBuffer, lightingState);
 
     // ── Attack overlay ──
     if (player.attackTimer > 0.2) {
         ctx.fillStyle = 'rgba(255,200,50,0.15)';
         ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
-        // pickaxe swing indicator
         ctx.fillStyle = '#ffd700';
         ctx.font = 'bold 48px monospace';
         ctx.textAlign = 'center';
@@ -121,15 +202,23 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
         }
     }
 
-    // ── View bob ──
-    // (applied via ctx.translate at frame start)
+    // ── Vignette (stronger without flashlight) ──
+    {
+        const vInner  = (player.hasFlashlight && player.flashlightOn) ? SCREEN_H * 0.18 : SCREEN_H * 0.04;
+        const vOuter  = (player.hasFlashlight && player.flashlightOn) ? SCREEN_W * 0.72 : SCREEN_W * 0.52;
+        const vAlpha  = (player.hasFlashlight && player.flashlightOn) ? 0.55 : 0.78;
+        const vGrad = ctx.createRadialGradient(SCREEN_W / 2, SCREEN_H / 2, vInner,
+                                               SCREEN_W / 2, SCREEN_H / 2, vOuter);
+        vGrad.addColorStop(0, 'rgba(0,0,0,0)');
+        vGrad.addColorStop(1, `rgba(0,0,0,${vAlpha})`);
+        ctx.fillStyle = vGrad;
+        ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    }
+
     ctx.restore();
 
     // ── HUD (drawn without bob/shake offset) ──
     drawHUD(ctx, player, mapData, levelInfo, doorStates);
-
-    // ── "Click to play" hint ──
-    // (shown from main.js overlay)
 }
 
 export function getContext() { return ctx; }

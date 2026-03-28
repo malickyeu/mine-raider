@@ -98,6 +98,18 @@ export function drawHUD(ctx, player, mapData, levelInfo, doorStates = {}) {
         }
     }
 
+    // ── Flashlight indicator ──
+    if (player.hasFlashlight) {
+        const flx = barX, fly = barY - 46;
+        const isOn = player.flashlightOn;
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(flx - 2, fly - 2, 68, 18);
+        ctx.fillStyle = isOn ? '#ffe080' : '#888';
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(isOn ? '🔦 ON' : '🔦 OFF', flx + 2, fly + 12);
+    }
+
     // ── Level indicator (top center) ──
     if (levelInfo) {
         const displayName = levelInfo.nameKey ? t(levelInfo.nameKey) : (levelInfo.name || '');

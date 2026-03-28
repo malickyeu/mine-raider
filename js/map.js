@@ -12,10 +12,11 @@ function level1() {
     const W = 20, H = 20;
     const S = T.STONE, D = T.WOOD, O = T.ORE, _ = T.EMPTY;
     const P = T.PLAYER, G = T.GOLD, M = T.GEM, B = T.BAT, E = T.EXIT, R = T.TORCH, L = T.HEALTH;
+    const F = T.FLASHLIGHT;
     // prettier-ignore
     const tiles = [
         [S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S],
-        [S,P,_,_,_,_,D,_,_,_,S,_,_,_,_,_,S,_,_,S],
+        [S,P,_,_,_,_,D,_,_,F,S,_,_,_,_,_,S,_,_,S],
         [S,_,_,_,_,_,D,_,G,_,S,_,_,_,_,_,S,_,_,S],
         [S,_,_,_,_,_,D,_,_,_,O,_,_,_,_,_,_,_,_,S],
         [S,_,_,S,S,_,_,_,_,_,S,_,_,S,S,_,_,_,_,S],

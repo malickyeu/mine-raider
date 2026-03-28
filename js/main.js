@@ -4,11 +4,12 @@ import { T, BREAKABLE_TYPES, WALL_HP, DIFFICULTIES, GAME_VERSION, ALL_DOOR_TYPES
 import { loadMap, extractEntities, getCampaignLevel, getCampaignLength, isWall, getTile } from './map.js';
 import { initInput, releasePointer, isDown } from './input.js';
 import { initRenderer, renderFrame } from './renderer.js';
-import { Player, Enemy, Treasure, HealthPack, SmallHealthPack, Exit, Torch, Pillar, KeyItem, createEntities } from './entities.js';
+import { Player, Enemy, Treasure, HealthPack, SmallHealthPack, Exit, Torch, Pillar, KeyItem, Flashlight, createEntities } from './entities.js';
 import { initEditor, showEditor, rebuildEditorUI } from './editor.js';
-import { sfxPickup, sfxGem, sfxAttack, sfxDeath, sfxWin, sfxHeal, sfxEnemyDeath, sfxHitWood, sfxBreakWood, sfxDoorOpen, sfxDoorLocked, sfxKeyPickup } from './audio.js';
+import { sfxPickup, sfxGem, sfxAttack, sfxDeath, sfxWin, sfxHeal, sfxEnemyDeath, sfxHitWood, sfxBreakWood, sfxDoorOpen, sfxDoorLocked, sfxKeyPickup, sfxFlashlightPickup } from './audio.js';
 import { toggleMinimap, toggleHelp, isHelpVisible, hideHelp } from './hud.js';
 import { t, toggleLang } from './i18n.js';
+import { getHighScore, submitScore, getBestCampaignScore } from './highscore.js';
 
 // ── DOM elements ──
 const menuScreen    = document.getElementById('menu-screen');
@@ -29,6 +30,7 @@ const helpClose     = document.getElementById('help-close');
 const btnPlay  = document.getElementById('btn-play');
 const btnEditor = document.getElementById('btn-editor');
 const btnLang  = document.getElementById('btn-lang');
+const menuHighscore = document.getElementById('menu-highscore');
 document.getElementById('game-version').textContent = `v${GAME_VERSION}`;
 
 const difficultyScreen  = document.getElementById('difficulty-screen');
@@ -69,10 +71,13 @@ initEditor(editorCanvas, editorPanel, null, () => {
 });
 
 // ── Refresh all UI text for current language ──
-function setDiffBtnContent(btn, icon, nameKey, descKey) {
+function setDiffBtnContent(btn, icon, nameKey, descKey, difficulty) {
+    const hs = getHighScore('campaign', difficulty);
+    const hsText = hs > 0 ? `🏆 ${hs.toLocaleString()}` : t('noRecord');
     btn.innerHTML =
         `<span class="diff-choice-name">${icon} ${t(nameKey)}</span>` +
-        `<span class="diff-choice-desc">${t(descKey)}</span>`;
+        `<span class="diff-choice-desc">${t(descKey)}</span>` +
+        `<span class="diff-choice-score">${hsText}</span>`;
 }
 
 function refreshUIText() {
@@ -81,11 +86,19 @@ function refreshUIText() {
     btnLang.textContent   = t('btnLang');
     menuSubtitle.textContent = t('subtitle');
 
+    // Menu high score
+    if (menuHighscore) {
+        const best = getBestCampaignScore();
+        menuHighscore.textContent = best > 0
+            ? `🏆 ${t('bestScore')}: ${best.toLocaleString()}`
+            : '';
+    }
+
     // Difficulty screen
     diffScreenTitle.textContent = t('diffScreenTitle');
-    setDiffBtnContent(diffChoiceEasy,   '⛏️', 'diffEasy',   'diffEasyDesc');
-    setDiffBtnContent(diffChoiceNormal, '🔥', 'diffNormal', 'diffNormalDesc');
-    setDiffBtnContent(diffChoiceHard,   '💀', 'diffHard',   'diffHardDesc');
+    setDiffBtnContent(diffChoiceEasy,   '⛏️', 'diffEasy',   'diffEasyDesc',   'easy');
+    setDiffBtnContent(diffChoiceNormal, '🔥', 'diffNormal', 'diffNormalDesc', 'normal');
+    setDiffBtnContent(diffChoiceHard,   '💀', 'diffHard',   'diffHardDesc',   'hard');
     diffBackBtn.textContent = t('diffBack');
 
     // Help overlay
@@ -137,6 +150,7 @@ overlayBtn.addEventListener('click', () => {
 let mKeyWasDown = false;
 let hKeyWasDown = false;
 let fKeyWasDown = false;
+let lKeyWasDown = false;
 
 window.addEventListener('keydown', e => {
     if (e.code === 'Escape') {
@@ -156,11 +170,16 @@ window.addEventListener('keydown', e => {
         hKeyWasDown = true;
         toggleHelp();
     }
+    if (e.code === 'KeyL' && state === 'game' && !lKeyWasDown && player && player.hasFlashlight) {
+        lKeyWasDown = true;
+        player.flashlightOn = !player.flashlightOn;
+    }
 });
 window.addEventListener('keyup', e => {
     if (e.code === 'KeyM') mKeyWasDown = false;
     if (e.code === 'KeyH') hKeyWasDown = false;
     if (e.code === 'KeyF') fKeyWasDown = false;
+    if (e.code === 'KeyL') lKeyWasDown = false;
 });
 
 function switchState(newState) {
@@ -198,7 +217,14 @@ function switchState(newState) {
             overlay.classList.add('active');
             overlayTitle.textContent = t('deathTitle');
             overlayTitle.style.color = '#ff4444';
-            overlayText.textContent = `${t('deathScore')} ${player.score}`;
+            {
+                const hsResult = submitScore(gameMode, selectedDifficulty, player.score);
+                let txt = `${t('deathScore')} ${player.score.toLocaleString()}`;
+                if (hsResult.isNew) txt += `\n${t('newRecord')}`;
+                else if (hsResult.prev > 0) txt += `\n🏆 ${t('bestScore')}: ${hsResult.prev.toLocaleString()}`;
+                overlayText.textContent = txt;
+                refreshUIText(); // refresh diff screen scores
+            }
             overlayBtn.textContent = gameMode === 'custom' ? t('backToEditor') : t('backToMenu');
             sfxDeath();
             releasePointer();
@@ -208,7 +234,7 @@ function switchState(newState) {
             overlay.classList.add('active');
             overlayTitle.textContent = t('nextLevelTitle');
             overlayTitle.style.color = '#44ff88';
-            overlayText.textContent = `${t('deathScore')} ${player.score} — ${t('nextLevelText')}`;
+            overlayText.textContent = `${t('deathScore')} ${player.score.toLocaleString()} — ${t('nextLevelText')}`;
             overlayBtn.textContent = t('nextLevelBtn');
             sfxWin();
             releasePointer();
@@ -218,9 +244,16 @@ function switchState(newState) {
             overlay.classList.add('active');
             overlayTitle.textContent = t('winTitle');
             overlayTitle.style.color = '#ffd700';
-            overlayText.textContent = gameMode === 'campaign'
-                ? t('winAllText', getCampaignLength(), player.score)
-                : t('winCustomText', player.score);
+            {
+                const hsResult = submitScore(gameMode, selectedDifficulty, player.score);
+                let winText = gameMode === 'campaign'
+                    ? t('winAllText', getCampaignLength(), player.score.toLocaleString())
+                    : t('winCustomText', player.score.toLocaleString());
+                if (hsResult.isNew) winText += `\n${t('newRecord')}`;
+                else if (hsResult.prev > 0) winText += `\n🏆 ${t('bestScore')}: ${hsResult.prev.toLocaleString()}`;
+                overlayText.textContent = winText;
+                refreshUIText(); // refresh diff screen scores
+            }
             overlayBtn.textContent = gameMode === 'custom' ? t('backToEditor') : t('backToMenu');
             sfxWin();
             releasePointer();
@@ -251,11 +284,15 @@ function startGame() {
     const prevScore = (player && gameMode === 'campaign') ? player.score : 0;
     const prevHp = (player && gameMode === 'campaign') ? player.hp : null;
     const prevKeys = (player && gameMode === 'campaign') ? new Set(player.keys) : new Set();
+    const prevFlashlight = (player && gameMode === 'campaign') ? player.hasFlashlight : false;
+    const prevFlashlightOn = (player && gameMode === 'campaign') ? player.flashlightOn : true;
 
     player = new Player(playerStart.x, playerStart.y);
     player.score = prevScore;
     if (prevHp !== null) player.hp = prevHp;
     player.keys = prevKeys;
+    player.hasFlashlight = prevFlashlight || (gameMode !== 'campaign');
+    player.flashlightOn = prevFlashlightOn; // default true; carries toggle state across levels
 
     entities = createEntities(entList, DIFFICULTIES[selectedDifficulty]);
     breakableWalls = {};
@@ -442,6 +479,7 @@ function gameLoop(now) {
         for (const ent of entities) {
             if (ent instanceof Enemy) ent.update(dt, mapData, player);
             else if (ent instanceof Torch) ent.update(dt);
+            else if (ent instanceof Flashlight) ent.update(dt);
         }
 
         for (const ent of entities) {
@@ -458,6 +496,13 @@ function gameLoop(now) {
                     ent.alive = false;
                     player.keys.add(ent.type);
                     sfxKeyPickup();
+                } else if (ent instanceof Flashlight) {
+                    ent.alive = false;
+                    if (!player.hasFlashlight) {
+                        player.hasFlashlight = true;
+                        player.flashlightOn = true;
+                        sfxFlashlightPickup();
+                    }
                 } else if (ent instanceof HealthPack || ent instanceof SmallHealthPack) {
                     if (player.hp < player.maxHp) {
                         ent.alive = false;

@@ -62,10 +62,11 @@ export const T = {
     KEY_BLUE:     24, // blue key – unlocks blue locked doors
     DOOR_RED:     25, // red locked door – requires red key
     DOOR_BLUE:    26, // blue locked door – requires blue key
+    FLASHLIGHT:   27, // collectible lantern – gives the player the lighting cone
 };
 
 export const WALL_TYPES = new Set([T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.DOOR, T.DOOR_RED, T.DOOR_BLUE]);
-export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.EXIT, T.TORCH, T.HEALTH, T.SPIDER, T.GHOST, T.PILLAR, T.HEALTH_SMALL, T.KEY_RED, T.KEY_BLUE]);
+export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.EXIT, T.TORCH, T.HEALTH, T.SPIDER, T.GHOST, T.PILLAR, T.HEALTH_SMALL, T.KEY_RED, T.KEY_BLUE, T.FLASHLIGHT]);
 
 // Locked door helpers
 export const LOCKED_DOOR_TYPES = new Set([T.DOOR_RED, T.DOOR_BLUE]);
@@ -100,8 +101,9 @@ export const TILE_LABEL_KEYS = {
     [T.DOOR]:     'tDoor',
     [T.KEY_RED]:  'tKeyRed',
     [T.KEY_BLUE]: 'tKeyBlue',
-    [T.DOOR_RED]: 'tDoorRed',
-    [T.DOOR_BLUE]:'tDoorBlue',
+    [T.DOOR_RED]:  'tDoorRed',
+    [T.DOOR_BLUE]: 'tDoorBlue',
+    [T.FLASHLIGHT]:'tFlashlight',
 };
 
 export const TILE_COLORS = {
@@ -129,4 +131,5 @@ export const TILE_COLORS = {
     [T.KEY_BLUE]: '#4488ff',
     [T.DOOR_RED]: '#aa3333',
     [T.DOOR_BLUE]:'#3333aa',
+    [T.FLASHLIGHT]:'#ffe080',
 };

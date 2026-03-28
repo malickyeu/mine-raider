@@ -95,3 +95,10 @@ export function sfxKeyPickup() {
     setTimeout(() => playTone(1200, 0.15, 'sine', 0.1), 120);
 }
 
+export function sfxFlashlightPickup() {
+    // warm whomp + rising chime – lantern igniting
+    playTone(120, 0.18, 'sine', 0.14);
+    setTimeout(() => playTone(300, 0.12, 'sine', 0.10), 80);
+    setTimeout(() => playTone(500, 0.10, 'sine', 0.10), 160);
+    setTimeout(() => playTone(800, 0.20, 'sine', 0.08), 240);
+}

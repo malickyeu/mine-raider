@@ -24,6 +24,8 @@ export class Player {
         this.staminaExhausted = false;
         this.shakeTimer = 0;
         this.keys = new Set();  // collected key types (T.KEY_RED, T.KEY_BLUE)
+        this.hasFlashlight = false; // true once player picks up the lantern
+        this.flashlightOn = true;   // toggleable on/off (L key)
     }
 
     update(dt, mapData, doorStates) {
@@ -286,6 +288,17 @@ export class KeyItem extends Entity {
     }
 }
 
+// ── Flashlight ── collectible lantern; gives player dynamic lighting cone
+export class Flashlight extends Entity {
+    constructor(x, y) {
+        super(T.FLASHLIGHT, x, y);
+        this.bobPhase = Math.random() * Math.PI * 2; // gentle float animation
+    }
+    update(dt) {
+        this.bobPhase += dt * 1.8;
+    }
+}
+
 /** Create entity instances from extracted entity list */
 export function createEntities(entityList, difficulty = null) {
     const entities = [];
@@ -319,6 +332,9 @@ export function createEntities(entityList, difficulty = null) {
             case T.KEY_RED:
             case T.KEY_BLUE:
                 entities.push(new KeyItem(e.type, e.x, e.y));
+                break;
+            case T.FLASHLIGHT:
+                entities.push(new Flashlight(e.x, e.y));
                 break;
         }
     }

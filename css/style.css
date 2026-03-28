@@ -571,3 +571,33 @@ body {
 #btn-lang:hover {
     opacity: 1;
 }
+
+/* ── Menu high score ── */
+#menu-highscore {
+    margin-top: 12px;
+    font-size: 0.95rem;
+    color: #f0c040;
+    opacity: 0.85;
+    min-height: 1.4em;
+    letter-spacing: 0.05em;
+}
+
+/* ── Difficulty screen best score row ── */
+.diff-choice-score {
+    font-size: 0.8rem;
+    color: #f0c040;
+    margin-top: 4px;
+    display: block;
+    font-weight: bold;
+    opacity: 0.9;
+}
+
+/* ── Overlay text multiline support ── */
+#overlay p {
+    font-size: 1.3rem;
+    margin-bottom: 1.5em;
+    white-space: pre-line;
+    text-align: center;
+    line-height: 1.6;
+}
+

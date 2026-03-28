@@ -33,8 +33,10 @@ const translations = {
             'Myš — Rozhlížení',
             'SPACE — Útok krumpáčem',
             'F — Otevřít dveře (zamčené vyžadují klíč)',
+            'SPACE u dřevěné zdi — Prolomit (3 rány)',
             'M — Skrýt / zobrazit mapu',
             'H — Nápověda',
+            'L — Přepnout lucernu (zapnout / vypnout)',
             'ESC — Menu',
         ],
         helpClose:      'Stiskni H pro zavření',
@@ -124,6 +126,12 @@ const translations = {
         tKeyBlue:  'Modrý klíč',
         tDoorRed:  'Červené dveře',
         tDoorBlue: 'Modré dveře',
+        tFlashlight: 'Lucerna',
+
+        // High score
+        bestScore:  'Nejlepší',
+        newRecord:  '⭐ Nový rekord!',
+        noRecord:   '—',
     },
 
     en: {
@@ -156,6 +164,7 @@ const translations = {
             'SPACE at wood wall — Break wall (3 hits)',
             'M — Toggle minimap',
             'H — Help',
+            'L — Toggle lantern (on / off)',
             'ESC — Menu',
         ],
         helpClose:      'Press H to close',
@@ -235,6 +244,12 @@ const translations = {
         tKeyBlue:  'Blue Key',
         tDoorRed:  'Red Door',
         tDoorBlue: 'Blue Door',
+        tFlashlight: 'Lantern',
+
+        // High score
+        bestScore:  'Best',
+        newRecord:  '⭐ New Record!',
+        noRecord:   '—',
 
         // Level names
         level1Name: 'Level 1 – Abandoned Mine',

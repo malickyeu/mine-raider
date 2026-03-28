@@ -535,6 +535,46 @@ function drawKey(color, highlight, shadow) {
 function drawKeyRed()  { return drawKey('#ff4444', '#ff8888', '#aa2222'); }
 function drawKeyBlue() { return drawKey('#4488ff', '#88bbff', '#2255aa'); }
 
+function drawFlashlight() {
+    const c = createCanvas(32, 32);
+    const ctx = c.getContext('2d');
+    // Outer glow / halo
+    const halo = ctx.createRadialGradient(16, 17, 3, 16, 17, 14);
+    halo.addColorStop(0,   'rgba(255,220,80,0.55)');
+    halo.addColorStop(0.6, 'rgba(255,140,10,0.25)');
+    halo.addColorStop(1,   'rgba(255,80,0,0)');
+    ctx.fillStyle = halo;
+    ctx.fillRect(0, 0, 32, 32);
+    // Lantern body
+    ctx.fillStyle = '#888';
+    ctx.fillRect(12, 6,  8, 2);   // top cap
+    ctx.fillRect(11, 8,  1, 16);  // left frame
+    ctx.fillRect(20, 8,  1, 16);  // right frame
+    ctx.fillRect(11, 23, 10, 2);  // bottom frame
+    // Metal bands
+    ctx.fillStyle = '#666';
+    ctx.fillRect(11, 13, 10, 1);
+    ctx.fillRect(11, 18, 10, 1);
+    // Glass (amber glow inside)
+    ctx.fillStyle = 'rgba(255,215,80,0.75)';
+    ctx.fillRect(12, 9, 8, 14);
+    // Inner flame
+    const flameGrad = ctx.createRadialGradient(16, 15, 1, 16, 16, 5);
+    flameGrad.addColorStop(0, 'rgba(255,255,220,0.95)');
+    flameGrad.addColorStop(0.5, 'rgba(255,200,50,0.7)');
+    flameGrad.addColorStop(1,   'rgba(255,100,0,0)');
+    ctx.fillStyle = flameGrad;
+    ctx.beginPath(); ctx.ellipse(16, 16, 5, 6, 0, 0, Math.PI * 2); ctx.fill();
+    // Handle
+    ctx.strokeStyle = '#999';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(16, 5, 3, Math.PI, 0); ctx.stroke();
+    // Base
+    ctx.fillStyle = '#777';
+    ctx.fillRect(10, 25, 12, 3);
+    return c;
+}
+
 // Pillar needs its own cache so alpha is preserved
 const pillarCache = {};
 export function getPillarTexture() {
@@ -555,6 +595,7 @@ const spriteGenerators = {    [T.GOLD]:     drawGold,
     [T.PILLAR]:   drawPillar,
     [T.KEY_RED]:  drawKeyRed,
     [T.KEY_BLUE]: drawKeyBlue,
+    [T.FLASHLIGHT]: drawFlashlight,
 };
 
 export function getSpriteTexture(entityType) {

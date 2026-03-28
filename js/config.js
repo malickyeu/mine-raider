@@ -1,6 +1,6 @@
 /* ── config.js ── game-wide constants ── */
 
-export const GAME_VERSION = '0.4.0';
+export const GAME_VERSION = '0.5.0';
 
 export const SCREEN_W = 640;
 export const SCREEN_H = 400;
@@ -35,6 +35,7 @@ export const DIFFICULTIES = {
 
 export const MINIMAP_SCALE = 6;          // px per tile
 export const MINIMAP_MARGIN = 10;
+export const FOG_REVEAL_RADIUS = 7;      // tiles revealed around player
 
 // Tile types
 export const T = {

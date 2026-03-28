@@ -1,7 +1,7 @@
 # ⛏️ Mine Raider – Roadmap
 
 > Živý dokument sledující plánované funkce a nápady pro další rozvoj hry.  
-> Poslední aktualizace: **2026-03-28** · verze **0.4.0** · 17 features (8 hotovo, 9 zbývá)
+> Poslední aktualizace: **2026-03-29** · verze **0.5.0** · 20 features (11 hotovo, 9 zbývá)
 
 ---
 
@@ -33,6 +33,8 @@
 - [x] **Globální žebříček skóre** 🏆 — `highscore.js`, localStorage, per-difficulty best score na difficulty screen, rekordní zobrazení po výhře/prohře
 - [x] **Výbušné sudy** 💣 — `T.BARREL` entita, výbuch krumpáčem / kontaktem nepřítele, řetězové výbuchy, plošné poškození (hráč, nepřátelé, dřevo), exploze sprite, screen shake, SFX
 - [x] **Ambientní dekorace** ⛏️ — důlní světla (`T.MINE_LIGHT`, dynamické osvětlení radius 3.5), důlní vozíky (`T.MINE_CART`, blokují pohyb), opřené krumpáče (`T.PICKAXE_DECOR`); v editoru i generátoru
+- [x] **Fog-of-War minimapa** 🗺️ — `explored[][]` grid odhalovaný BFS flood-fill (zastaví se na zdech a zavřených dveřích); vzdálené prozkoumané dlaždice ztmaveny; ikonky statických entit v minimapě; dveřní rám se odhalí spolu s dveřmi
+- [x] **Vylepšený generátor map** ⚙️ — parametr `targetScore` škáluje nepřátele a sběratelné předměty; dynamický max místností dle velikosti mapy; `healthSmall` = 0.5 × místností; zvýšené základní počty nepřátel (hard: 5/3/5/3); mine carty se neumísťují vedle dveří; lékárničky a krumpáče vždy u zdi (`nearWallEmpty` pool); živý preview v editoru se odhadovaným skóre
 
 ---
 
@@ -45,11 +47,6 @@
 - **Rolling Boulder** – pohybující se objekt po chodbě, inspirováno Indiana Jones
 - Viditelné varování (jiná barva dlaždice) na nižší obtížnosti
 
-
-### 7. 🗺️ Automap (odhalená mapa)
-- Navštívené části mapy se ukládají a zobrazují ve zvětšeném mapovém módu (`Tab`)
-- Nenavštívené oblasti jsou zakryté tmou (Fog of War)
-- Minimap zobrazuje pouze odhalené buňky
 
 ### 8. 🎒 Inventář & použitelné předměty
 - Hráč může nosit až 3 lékárničky a použít je klávesou `F`

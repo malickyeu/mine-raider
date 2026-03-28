@@ -1,4 +1,5 @@
 # AGENTS.md – Mine Raider Codebase Guide
+> Version **0.5.0** · Last updated 2026-03-29
 
 ## Project Overview
 Wolfenstein 3D-style raycasting game in **vanilla JavaScript + HTML5 Canvas**. No bundler, no game engine, no external assets — textures and audio are all procedurally generated at runtime.

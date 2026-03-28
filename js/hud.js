@@ -1,6 +1,6 @@
 /* ── hud.js ── heads-up display: health, score, minimap, level ── */
 
-import { SCREEN_W, SCREEN_H, MINIMAP_SCALE, MINIMAP_MARGIN, WALL_TYPES, T, ALL_DOOR_TYPES } from './config.js';
+import { SCREEN_W, SCREEN_H, MINIMAP_SCALE, MINIMAP_MARGIN, WALL_TYPES, T, ALL_DOOR_TYPES, FOG_REVEAL_RADIUS } from './config.js';
 import { t } from './i18n.js';
 
 let minimapVisible = true;
@@ -14,6 +14,24 @@ const WALL_COLORS = {
 };
 const DIFF_COLORS = { easy: '#66dd55', normal: '#f0c040', hard: '#ff7744' };
 const DIFF_KEYS   = { easy: 'diffEasy', normal: 'diffNormal', hard: 'diffHard' };
+
+// Entity icon colors for the minimap (static/collectible only — no enemies)
+const MM_ENT_COLORS = {
+    [T.TORCH]:        '#ff8800',
+    [T.MINE_LIGHT]:   '#ddaa33',
+    [T.MINE_CART]:    '#888',
+    [T.PICKAXE_DECOR]:'#996633',
+    [T.BARREL]:       '#cc4422',
+    [T.HEALTH]:       '#ff3333',
+    [T.HEALTH_SMALL]: '#cc5577',
+    [T.EXIT]:         '#44ff88',
+    [T.GOLD]:         '#ffd700',
+    [T.GEM]:          '#ff44ff',
+    [T.KEY_RED]:      '#ff4444',
+    [T.KEY_BLUE]:     '#4488ff',
+    [T.FLASHLIGHT]:   '#ffe080',
+    [T.PILLAR]:       '#887766',
+};
 
 const MAX_MM_PX = 120; // max minimap size in pixels
 
@@ -33,7 +51,7 @@ export function hideHelp() {
     if (el) el.classList.remove('active');
 }
 
-export function drawHUD(ctx, player, mapData, levelInfo, doorStates = {}) {
+export function drawHUD(ctx, player, mapData, levelInfo, doorStates = {}, entities = [], explored = null) {
     // ── Health bar ──
     const barW = 160, barH = 16;
     const barX = 14, barY = SCREEN_H - 30;
@@ -151,51 +169,74 @@ export function drawHUD(ctx, player, mapData, levelInfo, doorStates = {}) {
         // Only iterate tiles inside the viewport
         const tileX1 = Math.min(mapData.width,  offX + viewTilesX);
         const tileY1 = Math.min(mapData.height, offY + viewTilesY);
+        const hasFow = explored !== null;
+        const rr2 = FOG_REVEAL_RADIUS * FOG_REVEAL_RADIUS;
 
+        // ── Walls (fog-of-war filtered) ──
         for (let y = offY; y < tileY1; y++) {
             for (let x = offX; x < tileX1; x++) {
+                if (hasFow && !explored[y][x]) continue; // unexplored → hidden
                 const tile = mapData.tiles[y][x];
-                if (ALL_DOOR_TYPES.has(tile)) continue; // doors drawn separately below
+                if (ALL_DOOR_TYPES.has(tile)) continue;
                 if (!WALL_TYPES.has(tile)) continue;
                 ctx.fillStyle = WALL_COLORS[tile] || '#555';
-                ctx.fillRect(
-                    mmX + (x - offX) * MINIMAP_SCALE,
-                    mmY + (y - offY) * MINIMAP_SCALE,
-                    MINIMAP_SCALE, MINIMAP_SCALE
-                );
+                const px = mmX + (x - offX) * MINIMAP_SCALE;
+                const py = mmY + (y - offY) * MINIMAP_SCALE;
+                ctx.fillRect(px, py, MINIMAP_SCALE, MINIMAP_SCALE);
+                // Dim explored-but-distant tiles
+                if (hasFow) {
+                    const ddx = x - player.x, ddy = y - player.y;
+                    if (ddx * ddx + ddy * ddy > rr2) {
+                        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                        ctx.fillRect(px, py, MINIMAP_SCALE, MINIMAP_SCALE);
+                    }
+                }
             }
         }
 
-        // ── Doors: thin line at tile center, gap when open ──
+        // ── Doors (fog-of-war filtered) ──
         for (let y = offY; y < tileY1; y++) {
             for (let x = offX; x < tileX1; x++) {
+                if (hasFow && !explored[y][x]) continue;
                 const tile = mapData.tiles[y][x];
                 if (!ALL_DOOR_TYPES.has(tile)) continue;
                 const ds = doorStates[`${x},${y}`];
                 const openAmt = ds ? ds.open : 0;
-                if (openAmt >= 0.99) continue; // fully open → invisible
+                if (openAmt >= 0.99) continue;
 
                 const tx = mmX + (x - offX) * MINIMAP_SCALE;
                 const ty = mmY + (y - offY) * MINIMAP_SCALE;
                 const s = MINIMAP_SCALE;
                 const closedPx = s * (1 - openAmt);
 
-                // Color by door type
                 if (tile === T.DOOR_RED) ctx.fillStyle = '#ff4444';
                 else if (tile === T.DOOR_BLUE) ctx.fillStyle = '#4488ff';
                 else ctx.fillStyle = '#aa8833';
 
-                // Walls above/below → vertical door (line along Y), else horizontal
                 const hasWallUp   = y > 0 && WALL_TYPES.has(mapData.tiles[y - 1][x]) && !ALL_DOOR_TYPES.has(mapData.tiles[y - 1][x]);
                 const hasWallDown = y < mapData.height - 1 && WALL_TYPES.has(mapData.tiles[y + 1][x]) && !ALL_DOOR_TYPES.has(mapData.tiles[y + 1][x]);
                 if (hasWallUp || hasWallDown) {
-                    // Door runs N-S (vertical), draw vertical line at center
                     ctx.fillRect(tx + s / 2 - 1, ty, 2, closedPx);
                 } else {
-                    // Door runs E-W (horizontal), draw horizontal line at center
                     ctx.fillRect(tx, ty + s / 2 - 1, closedPx, 2);
                 }
             }
+        }
+
+        // ── Entity icons (only on explored tiles) ──
+        for (const ent of entities) {
+            if (!ent.alive) continue;
+            const color = MM_ENT_COLORS[ent.type];
+            if (!color) continue; // skip enemies & unknown
+            const etx = Math.floor(ent.x), ety = Math.floor(ent.y);
+            if (hasFow && !explored[ety]?.[etx]) continue;
+            // Skip if outside viewport
+            if (etx < offX || etx >= tileX1 || ety < offY || ety >= tileY1) continue;
+            const ex = mmX + (ent.x - offX) * MINIMAP_SCALE;
+            const ey = mmY + (ent.y - offY) * MINIMAP_SCALE;
+            ctx.fillStyle = color;
+            const r = ent.type === T.EXIT ? 2 : 1.3;
+            ctx.beginPath(); ctx.arc(ex, ey, r, 0, Math.PI * 2); ctx.fill();
         }
 
         // Player dot + direction

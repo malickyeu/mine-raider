@@ -23,18 +23,22 @@ Everything — wall textures, sprites, sounds — is **procedurally generated at
 | **Rendering** | DDA raycasting engine (Wolf3D-style), textured walls, distance fog, floor/ceiling gradients, head bob & screen shake on damage |
 | **Wall types** | Stone, Wood *(breakable)*, Ore, Mossy Stone, Crystal, Iron, **Door** *(openable, Wolf3D-style thin wall with 3D frame)* |
 | **Enemies** | Bat, Spider, Skeleton, Ghost *(phases through walls!)* |
-| **Collectibles** | Gold coins, Gemstones, Health packs (large +40 HP, small +15 HP), **Lantern** 🔦 *(unlocks dynamic lighting cone)* |
-| **Decorations** | Torches *(flickering ambient light)*, Stone pillars *(block movement, transparent sprite)* |
+| **Collectibles** | Gold coins, Gemstones, Health packs (large +40 HP, small +15 HP), **Lantern** 🔦 *(unlocks dynamic lighting cone)*, Keys 🔑 |
+| **Decorations** | Torches *(flickering ambient light)*, Stone pillars, **Mine lights** 💡 *(ambient glow)*, **Mine carts** 🛒 *(block movement)*, **Pickaxes** ⛏️ |
+| **Explosive barrels** | `T.BARREL` — detonate with pickaxe or enemy contact; chain explosions, area damage to player/enemies/wood walls, screen shake |
 | **Doors** | Press `F` to open; auto-close after 3 s; 3D square frame posts; wood walls adjacent to doors cannot be broken |
 | **Locked doors** | Red 🔴 / Blue 🔵 locked doors require matching keys; keys carried across campaign levels |
 | **Flashlight** | Collectible lantern widens the lighting cone; toggle on/off with `L`; HUD shows ON/OFF state |
+| **Fog of War** | Minimap reveals only explored areas via BFS flood-fill (stops at walls/closed doors); distant explored tiles dimmed; static entity icons shown |
 | **Campaign** | 5 hand-crafted levels of increasing size and difficulty |
 | **Difficulty** | Miner / Prospector / Deep Delver — scales enemy HP, speed, damage and attack rate |
 | **Sprint** | Hold `Shift` to move 1.6× faster; stamina bar in HUD drains and regenerates |
 | **Map editor** | Grid-based editor with grouped icon palette (tooltips on hover), level selector, resize, save/load, map generator |
+| **Map generator** | Configurable size/rooms/difficulty/**target score**; BFS connectivity guarantee; locked door placement; dynamic room cap; items placed near walls |
+| **High score** | Per-difficulty best score in `localStorage`; shown on difficulty screen and end screens |
 | **i18n** | Czech 🇨🇿 / English 🇬🇧 UI language switch (persisted in localStorage) |
 | **Audio** | Web Audio oscillator-based SFX — no audio files needed |
-| **HUD** | Health bar, stamina bar, score, minimap with toggle, level name + difficulty badge, key icons, flashlight indicator |
+| **HUD** | Health bar, stamina bar, score, minimap with FoW + entity icons, level name + difficulty badge, key icons, flashlight indicator |
 | **Help overlay** | In-game help screen (press `H`) |
 
 ---

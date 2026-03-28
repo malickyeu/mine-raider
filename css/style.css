@@ -501,6 +501,11 @@ body {
     min-width: 72px;
 }
 
+.gen-row .ed-num {
+    flex: 1;
+    width: auto;
+}
+
 .gen-preview {
     margin: 8px 0 4px;
     padding: 7px 8px;
@@ -521,6 +526,15 @@ body {
     gap: 3px 2px;
     font-size: 0.75rem;
     color: #ddd;
+}
+
+.gen-preview-score {
+    margin-top: 6px;
+    font-size: 0.75rem;
+    color: #f0c040;
+    font-weight: bold;
+    border-top: 1px solid #3a2808;
+    padding-top: 5px;
 }
 
 /* ── Win / Death overlay ── */

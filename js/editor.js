@@ -337,6 +337,10 @@ function buildGenTab() {
             <label class="ed-small-lbl">${t('edGenRooms')}</label>
             <input type="number" id="gen-rooms" class="ed-num" min="4" max="60" value="8">
         </div>
+        <div class="gen-row">
+            <label class="ed-small-lbl">${t('edGenTargetScore')}</label>
+            <input type="number" id="gen-target-score" class="ed-num" min="0" max="99999" value="0" placeholder="0 = auto">
+        </div>
     `;
 
     // ── Live preview ──
@@ -344,51 +348,103 @@ function buildGenTab() {
     previewDiv.className = 'gen-preview';
     pane.appendChild(previewDiv);
 
+    // Dynamic room max based on map size
+    function getMaxRooms(size) { return Math.min(60, Math.floor(size * size / 36)); }
+
+    function syncRoomLimits() {
+        const size  = parseInt(document.getElementById('gen-size')?.value) || 24;
+        const input = document.getElementById('gen-rooms');
+        const max   = getMaxRooms(size);
+        input.max   = max;
+        if (parseInt(input.value) > max) input.value = max;
+    }
+
     function updatePreview() {
-        const rooms = Math.max(4, Math.min(60, parseInt(document.getElementById('gen-rooms')?.value) || 8));
-        const diff  = document.getElementById('gen-diff')?.value  || 'normal';
-        const scale = Math.max(1, rooms / 8);
+        syncRoomLimits();
+        const rooms  = Math.max(4, parseInt(document.getElementById('gen-rooms')?.value) || 8);
+        const diff   = document.getElementById('gen-diff')?.value || 'normal';
+        const tScore = Math.max(0, parseInt(document.getElementById('gen-target-score')?.value) || 0);
+        const scale  = Math.max(1, rooms / 8);
+
         const DS = {
-            easy:   { bats:1, skeletons:0, spiders:1, ghosts:0, gold:4, gems:2, health:3, torches:rooms, barrels:2, mineLights:Math.ceil(rooms*0.6), mineCarts:2, pickaxes:2 },
-            normal: { bats:2, skeletons:1, spiders:2, ghosts:1, gold:3, gems:1, health:2, torches:Math.ceil(rooms*0.8), barrels:3, mineLights:Math.ceil(rooms*0.4), mineCarts:1, pickaxes:1 },
-            hard:   { bats:3, skeletons:2, spiders:3, ghosts:2, gold:2, gems:1, health:1, torches:Math.ceil(rooms*0.5), barrels:4, mineLights:Math.ceil(rooms*0.3), mineCarts:1, pickaxes:1 },
-        }[diff] ?? { bats:2, skeletons:1, spiders:2, ghosts:1, gold:3, gems:1, health:2, torches:Math.ceil(rooms*0.8), barrels:3, mineLights:Math.ceil(rooms*0.4), mineCarts:1, pickaxes:1 };
+            easy:   { bats:2, skeletons:0, spiders:1, ghosts:0, gold:5, gems:3, health:3, healthSmall:Math.ceil(rooms*0.5), torches:rooms, barrels:2, mineLights:Math.ceil(rooms*0.6), mineCarts:2, pickaxes:2 },
+            normal: { bats:4, skeletons:2, spiders:3, ghosts:1, gold:4, gems:2, health:2, healthSmall:Math.ceil(rooms*0.5), torches:Math.ceil(rooms*0.8), barrels:3, mineLights:Math.ceil(rooms*0.4), mineCarts:1, pickaxes:1 },
+            hard:   { bats:5, skeletons:3, spiders:5, ghosts:3, gold:3, gems:2, health:1, healthSmall:Math.ceil(rooms*0.5), torches:Math.ceil(rooms*0.5), barrels:4, mineLights:Math.ceil(rooms*0.3), mineCarts:1, pickaxes:1 },
+        }[diff] ?? { bats:4, skeletons:2, spiders:3, ghosts:1, gold:4, gems:2, health:2, healthSmall:Math.ceil(rooms*0.5), torches:Math.ceil(rooms*0.8), barrels:3, mineLights:Math.ceil(rooms*0.4), mineCarts:1, pickaxes:1 };
+
+        // Final counts (mirrors mapgen.js C object)
+        const C = {
+            gold:       Math.max(2, Math.round(DS.gold*scale)),
+            gems:       Math.max(1, Math.round(DS.gems*scale)),
+            health:     Math.max(1, Math.round(DS.health*scale)),
+            healthSmall:Math.max(2, DS.healthSmall),
+            bats:       Math.max(0, Math.round(DS.bats*scale)),
+            spiders:    Math.max(0, Math.round(DS.spiders*scale)),
+            skeletons:  Math.max(0, Math.round(DS.skeletons*scale)),
+            ghosts:     Math.max(0, Math.round(DS.ghosts*scale)),
+            barrels:    Math.max(1, Math.round(DS.barrels*scale)),
+            torches:    Math.round(DS.torches),
+            mineLights: Math.max(1, Math.round(DS.mineLights*scale)),
+            mineCarts:  Math.min(4, Math.max(1, Math.round(DS.mineCarts*scale))),
+            pickaxes:   Math.min(4, Math.max(1, Math.round(DS.pickaxes*scale))),
+        };
+
+        // Target score scaling (same logic as mapgen)
+        if (tScore > 0) {
+            const pot = C.gold*50 + C.gems*150 + C.bats*50 + C.spiders*100 + C.skeletons*200 + C.ghosts*300;
+            if (pot > 0) {
+                const mul = tScore / pot;
+                C.gold = Math.max(1, Math.round(C.gold*mul));
+                C.gems = Math.max(1, Math.round(C.gems*mul));
+                C.bats = Math.max(0, Math.round(C.bats*mul));
+                C.spiders = Math.max(0, Math.round(C.spiders*mul));
+                C.skeletons = Math.max(0, Math.round(C.skeletons*mul));
+                C.ghosts = Math.max(0, Math.round(C.ghosts*mul));
+            }
+        }
 
         const regularDoors = Math.max(2, Math.floor(rooms * 0.6));
         const lockedDoors  = diff === 'easy' ? 0 : 1;
 
+        const estScore = C.gold*50 + C.gems*150 + C.bats*50 + C.spiders*100 + C.skeletons*200 + C.ghosts*300 + C.barrels*25;
+
         previewDiv.innerHTML =
             `<div class="gen-preview-title">${t('edGenPreview')}</div>` +
             `<div class="gen-preview-grid">` +
-            `<span>🦇 ×${Math.max(0,Math.round(DS.bats*scale))}</span>` +
-            `<span>💀 ×${Math.max(0,Math.round(DS.skeletons*scale))}</span>` +
-            `<span>🕷️ ×${Math.max(0,Math.round(DS.spiders*scale))}</span>` +
-            `<span>👻 ×${Math.max(0,Math.round(DS.ghosts*scale))}</span>` +
-            `<span>💰 ×${Math.max(2,Math.round(DS.gold*scale))}</span>` +
-            `<span>💎 ×${Math.max(1,Math.round(DS.gems*scale))}</span>` +
-            `<span>❤️ ×${Math.max(1,Math.round(DS.health*scale))}</span>` +
-            `<span>🔥 ×${Math.round(DS.torches)}</span>` +
-            `<span>🧨 ×${Math.max(1,Math.round(DS.barrels*scale))}</span>` +
-            `<span>💡 ×${Math.max(1,Math.round(DS.mineLights*scale))}</span>` +
-            `<span>🛒 ×${Math.min(4,Math.max(1,Math.round(DS.mineCarts*scale)))}</span>` +
-            `<span>⛏️ ×${Math.min(4,Math.max(1,Math.round(DS.pickaxes*scale)))}</span>` +
+            `<span>🦇 ×${C.bats}</span>` +
+            `<span>💀 ×${C.skeletons}</span>` +
+            `<span>🕷️ ×${C.spiders}</span>` +
+            `<span>👻 ×${C.ghosts}</span>` +
+            `<span>💰 ×${C.gold}</span>` +
+            `<span>💎 ×${C.gems}</span>` +
+            `<span>❤️ ×${C.health}</span>` +
+            `<span>🩹 ×${C.healthSmall}</span>` +
+            `<span>🔥 ×${C.torches}</span>` +
+            `<span>🧨 ×${C.barrels}</span>` +
+            `<span>💡 ×${C.mineLights}</span>` +
+            `<span>🛒 ×${C.mineCarts}</span>` +
+            `<span>⛏️ ×${C.pickaxes}</span>` +
             `<span>🚪 ~${regularDoors}</span>` +
             (lockedDoors > 0 ? `<span>🔒 ×${lockedDoors}</span><span>🔑 ×${lockedDoors}</span>` : '') +
-            `</div>`;
+            `</div>` +
+            `<div class="gen-preview-score">⛏ ~${estScore} ${t('edGenEstScore')}</div>`;
     }
 
     // Attach live listeners after elements exist in DOM
     document.getElementById('gen-size').addEventListener('change', updatePreview);
     document.getElementById('gen-diff').addEventListener('change', updatePreview);
     document.getElementById('gen-rooms').addEventListener('input',  updatePreview);
+    document.getElementById('gen-target-score').addEventListener('input', updatePreview);
     updatePreview(); // initial render
 
     pane.appendChild(makeEdBtn(t('edGenerate'), 'gen-btn', () => {
-        const wallType   = parseInt(document.getElementById('gen-wall').value);
-        const size       = parseInt(document.getElementById('gen-size').value);
-        const difficulty = document.getElementById('gen-diff').value;
-        const roomCount  = Math.max(4, Math.min(60, parseInt(document.getElementById('gen-rooms').value) || 8));
-        mapData = generateMap({ width: size, height: size, wallType, roomCount, difficulty });
+        const wallType    = parseInt(document.getElementById('gen-wall').value);
+        const size        = parseInt(document.getElementById('gen-size').value);
+        const difficulty  = document.getElementById('gen-diff').value;
+        const maxR        = getMaxRooms(size);
+        const roomCount   = Math.max(4, Math.min(maxR, parseInt(document.getElementById('gen-rooms').value) || 8));
+        const targetScore = Math.max(0, parseInt(document.getElementById('gen-target-score').value) || 0);
+        mapData = generateMap({ width: size, height: size, wallType, roomCount, difficulty, targetScore });
         resizeCanvas(); drawGrid();
         showFlash(pane, t('edGenDone'));
     }));

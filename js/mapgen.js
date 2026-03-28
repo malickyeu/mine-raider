@@ -1,6 +1,6 @@
 /* ── mapgen.js ── procedural map generator with connectivity guarantee ── */
 
-import { T } from './config.js';
+import { T, WALL_TYPES } from './config.js';
 
 // ── Helpers ──
 function rng(min, max) {
@@ -84,6 +84,7 @@ export function generateMap({
     wallType = T.STONE,
     roomCount = 8,
     difficulty = 'normal',
+    targetScore = 0,
 } = {}) {
 
     // ── 1. Fill grid with the chosen wall type ──
@@ -325,8 +326,20 @@ export function generateMap({
     }
 
     // ── 9. Collect free cells for entity placement ──
-    const allEmpty    = [];
+    // Build set of cells adjacent to doors — blocking entities must not go here
+    const doorAdjacentSet = new Set();
+    for (const dp of doorPositions) {
+        for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+            const nx = dp.x + dx, ny = dp.y + dy;
+            if (nx >= 0 && ny >= 0 && nx < width && ny < height)
+                doorAdjacentSet.add(ny * width + nx);
+        }
+    }
+
+    const allEmpty      = [];
     const nonStartEmpty = [];
+    const nonBlockEmpty = [];
+    const nearWallEmpty = []; // empty tiles with at least one wall neighbor — good for items leaning against walls
     for (let y = 1; y < height - 1; y++) {
         for (let x = 1; x < width - 1; x++) {
             if (tiles[y][x] !== T.EMPTY) continue;
@@ -334,16 +347,54 @@ export function generateMap({
                             y >= rooms[0].y1 && y <= rooms[0].y2;
             allEmpty.push({ x, y });
             if (!inStart) nonStartEmpty.push({ x, y });
+            if (!inStart && !doorAdjacentSet.has(y * width + x))
+                nonBlockEmpty.push({ x, y });
+            // Near-wall: at least one cardinal neighbor is a solid wall
+            const hasWallNeighbor =
+                WALL_TYPES.has(tiles[y-1][x]) || WALL_TYPES.has(tiles[y+1][x]) ||
+                WALL_TYPES.has(tiles[y][x-1]) || WALL_TYPES.has(tiles[y][x+1]);
+            if (hasWallNeighbor) nearWallEmpty.push({ x, y });
         }
     }
 
-    // Difficulty table (counts scale with number of rooms)
+    // Difficulty table (base values per 8 rooms)
     const scale = Math.max(1, rooms.length / 8);
     const DS = {
-        easy:   { bats: 1, skeletons: 0, spiders: 1, ghosts: 0, gold: 4, gems: 2, health: 3, torches: rooms.length, barrels: 2, mineLights: Math.ceil(rooms.length * 0.6), mineCarts: 2, pickaxes: 2 },
-        normal: { bats: 2, skeletons: 1, spiders: 2, ghosts: 1, gold: 3, gems: 1, health: 2, torches: Math.ceil(rooms.length * 0.8), barrels: 3, mineLights: Math.ceil(rooms.length * 0.4), mineCarts: 1, pickaxes: 1 },
-        hard:   { bats: 3, skeletons: 2, spiders: 3, ghosts: 2, gold: 2, gems: 1, health: 1, torches: Math.ceil(rooms.length * 0.5), barrels: 4, mineLights: Math.ceil(rooms.length * 0.3), mineCarts: 1, pickaxes: 1 },
-    }[difficulty] ?? { bats:2, skeletons:1, spiders:2, ghosts:1, gold:3, gems:1, health:2, torches: Math.ceil(rooms.length*0.8), barrels:3, mineLights: Math.ceil(rooms.length*0.4), mineCarts:1, pickaxes:1 };
+        easy:   { bats:2, skeletons:0, spiders:1, ghosts:0, gold:5, gems:3, health:3, healthSmall: Math.ceil(rooms.length*0.5), torches:rooms.length, barrels:2, mineLights:Math.ceil(rooms.length*0.6), mineCarts:2, pickaxes:2 },
+        normal: { bats:4, skeletons:2, spiders:3, ghosts:1, gold:4, gems:2, health:2, healthSmall: Math.ceil(rooms.length*0.5), torches:Math.ceil(rooms.length*0.8), barrels:3, mineLights:Math.ceil(rooms.length*0.4), mineCarts:1, pickaxes:1 },
+        hard:   { bats:5, skeletons:3, spiders:5, ghosts:3, gold:3, gems:2, health:1, healthSmall: Math.ceil(rooms.length*0.5), torches:Math.ceil(rooms.length*0.5), barrels:4, mineLights:Math.ceil(rooms.length*0.3), mineCarts:1, pickaxes:1 },
+    }[difficulty] ?? { bats:4, skeletons:2, spiders:3, ghosts:1, gold:4, gems:2, health:2, healthSmall: Math.ceil(rooms.length*0.5), torches:Math.ceil(rooms.length*0.8), barrels:3, mineLights:Math.ceil(rooms.length*0.4), mineCarts:1, pickaxes:1 };
+
+    // ── Final entity counts (base × scale, clamped) ──
+    const C = {
+        gold:       Math.max(2, Math.round(DS.gold * scale)),
+        gems:       Math.max(1, Math.round(DS.gems * scale)),
+        health:     Math.max(1, Math.round(DS.health * scale)),
+        healthSmall:Math.max(2, DS.healthSmall),
+        bats:       Math.max(0, Math.round(DS.bats * scale)),
+        spiders:    Math.max(0, Math.round(DS.spiders * scale)),
+        skeletons:  Math.max(0, Math.round(DS.skeletons * scale)),
+        ghosts:     Math.max(0, Math.round(DS.ghosts * scale)),
+        barrels:    Math.max(1, Math.round(DS.barrels * scale)),
+        torches:    Math.round(DS.torches),
+        mineLights: Math.max(1, Math.round(DS.mineLights * scale)),
+        mineCarts:  Math.min(4, Math.max(1, Math.round(DS.mineCarts * scale))),
+        pickaxes:   Math.min(4, Math.max(1, Math.round(DS.pickaxes * scale))),
+    };
+
+    // ── Target score scaling (applied once to final counts) ──
+    if (targetScore > 0) {
+        const pot = C.gold*50 + C.gems*150 + C.bats*50 + C.spiders*100 + C.skeletons*200 + C.ghosts*300;
+        if (pot > 0) {
+            const mul = targetScore / pot;
+            C.gold      = Math.max(1, Math.round(C.gold * mul));
+            C.gems      = Math.max(1, Math.round(C.gems * mul));
+            C.bats      = Math.max(0, Math.round(C.bats * mul));
+            C.spiders   = Math.max(0, Math.round(C.spiders * mul));
+            C.skeletons = Math.max(0, Math.round(C.skeletons * mul));
+            C.ghosts    = Math.max(0, Math.round(C.ghosts * mul));
+        }
+    }
 
     // Helper: place N entities from a shuffled pool
     const placeEntities = (type, count, pool) => {
@@ -358,18 +409,20 @@ export function generateMap({
         }
     };
 
-    placeEntities(T.TORCH,    Math.round(DS.torches),                               allEmpty);
-    placeEntities(T.HEALTH,   Math.max(1, Math.round(DS.health * scale)),           allEmpty);
-    placeEntities(T.GOLD,     Math.max(2, Math.round(DS.gold    * scale)),          allEmpty);
-    placeEntities(T.GEM,      Math.max(1, Math.round(DS.gems    * scale)),          allEmpty);
-    placeEntities(T.BARREL,   Math.max(1, Math.round(DS.barrels * scale)),          nonStartEmpty);
-    placeEntities(T.MINE_LIGHT, Math.max(1, Math.round(DS.mineLights * scale)),     allEmpty);
-    placeEntities(T.MINE_CART,  Math.min(4, Math.max(1, Math.round(DS.mineCarts * scale))),  nonStartEmpty);
-    placeEntities(T.PICKAXE_DECOR, Math.min(4, Math.max(1, Math.round(DS.pickaxes * scale))), allEmpty);
-    placeEntities(T.BAT,      Math.max(0, Math.round(DS.bats    * scale)),          nonStartEmpty);
-    placeEntities(T.SKELETON, Math.max(0, Math.round(DS.skeletons * scale)),        nonStartEmpty);
-    placeEntities(T.SPIDER,   Math.max(0, Math.round(DS.spiders * scale)),          nonStartEmpty);
-    placeEntities(T.GHOST,    Math.max(0, Math.round(DS.ghosts  * scale)),          nonStartEmpty);
+    const nw = nearWallEmpty.length ? nearWallEmpty : allEmpty;
+    placeEntities(T.TORCH,        C.torches,     allEmpty);
+    placeEntities(T.HEALTH,       C.health,      nw);
+    placeEntities(T.HEALTH_SMALL, C.healthSmall, nw);
+    placeEntities(T.GOLD,         C.gold,        allEmpty);
+    placeEntities(T.GEM,          C.gems,        allEmpty);
+    placeEntities(T.BARREL,       C.barrels,     nonStartEmpty);
+    placeEntities(T.MINE_LIGHT,   C.mineLights,  allEmpty);
+    placeEntities(T.MINE_CART,    C.mineCarts,   nonBlockEmpty);
+    placeEntities(T.PICKAXE_DECOR,C.pickaxes,    nw);
+    placeEntities(T.BAT,          C.bats,        nonStartEmpty);
+    placeEntities(T.SKELETON,     C.skeletons,   nonStartEmpty);
+    placeEntities(T.SPIDER,       C.spiders,     nonStartEmpty);
+    placeEntities(T.GHOST,        C.ghosts,      nonStartEmpty);
 
     // ── 10. Wall accent decoration ──
     if (wallType === T.STONE) {
@@ -387,6 +440,7 @@ export function generateMap({
 
     // Always add some breakable wood walls (shortcuts / variety)
     addWallAccents(tiles, width, height, wallType, T.WOOD, 0.025);
+
 
     return { width, height, tiles, name: 'Generated Map' };
 }

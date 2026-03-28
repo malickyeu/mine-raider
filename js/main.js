@@ -1,6 +1,6 @@
 /* ── main.js ── game bootstrap, state machine, game loop ── */
 
-import { T, BREAKABLE_TYPES, WALL_HP, DIFFICULTIES, GAME_VERSION, ALL_DOOR_TYPES, LOCKED_DOOR_TYPES, DOOR_KEY_MAP, BARREL_EXPLOSION_RADIUS, BARREL_EXPLOSION_DAMAGE } from './config.js';
+import { T, BREAKABLE_TYPES, WALL_HP, DIFFICULTIES, GAME_VERSION, ALL_DOOR_TYPES, WALL_TYPES, LOCKED_DOOR_TYPES, DOOR_KEY_MAP, BARREL_EXPLOSION_RADIUS, BARREL_EXPLOSION_DAMAGE, FOG_REVEAL_RADIUS } from './config.js';
 import { loadMap, extractEntities, getCampaignLevel, getCampaignLength, isWall, getTile } from './map.js';
 import { initInput, releasePointer, isDown } from './input.js';
 import { initRenderer, renderFrame } from './renderer.js';
@@ -59,6 +59,9 @@ let breakableWalls = {};
 
 // ── Door states: "x,y" → { open: 0..1, opening: bool } ──
 let doorStates = {};
+
+// ── Fog-of-war: explored[y][x] = 1 if player has been nearby ──
+let explored = null;
 
 // ── Init ──
 initInput(gameCanvas);
@@ -298,6 +301,7 @@ function startGame() {
     entities = createEntities(entList, DIFFICULTIES[selectedDifficulty]);
     breakableWalls = {};
     doorStates = {};
+    explored = Array.from({ length: mapData.height }, () => new Uint8Array(mapData.width));
     lastTime = performance.now();
     gameLoop(lastTime);
 }
@@ -402,6 +406,46 @@ function gameLoop(now) {
     // Don't update game while help is open
     if (!isHelpVisible()) {
         player.update(dt, mapData, doorStates);
+
+        // ── Fog-of-war: BFS reveal that stops at walls / closed doors ──
+        {
+            const fpx = Math.floor(player.x), fpy = Math.floor(player.y);
+            const rr2 = FOG_REVEAL_RADIUS * FOG_REVEAL_RADIUS;
+            const w = mapData.width, h = mapData.height;
+            const vis = new Set();
+            const q = [[fpx, fpy]];
+            vis.add(fpy * w + fpx);
+            while (q.length > 0) {
+                const [cx, cy] = q.shift();
+                explored[cy][cx] = 1;
+                // Walls / closed doors: reveal them but don't expand through
+                if (isWall(mapData, cx, cy, doorStates)) {
+                    // Doors: also reveal adjacent solid walls (door frame)
+                    const tile = mapData.tiles[cy]?.[cx];
+                    if (tile !== undefined && ALL_DOOR_TYPES.has(tile)) {
+                        for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+                            const nx = cx + dx, ny = cy + dy;
+                            if (nx >= 0 && ny >= 0 && nx < w && ny < h) {
+                                const nt = mapData.tiles[ny][nx];
+                                if (WALL_TYPES.has(nt) && !ALL_DOOR_TYPES.has(nt))
+                                    explored[ny][nx] = 1;
+                            }
+                        }
+                    }
+                    continue;
+                }
+                for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+                    const nx = cx + dx, ny = cy + dy;
+                    if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+                    const nk = ny * w + nx;
+                    if (vis.has(nk)) continue;
+                    const ddx = nx - fpx, ddy = ny - fpy;
+                    if (ddx * ddx + ddy * ddy > rr2) continue;
+                    vis.add(nk);
+                    q.push([nx, ny]);
+                }
+            }
+        }
 
         // ── Open/close doors (F key) ──
         if (isDown('KeyF') && !fKeyWasDown) {
@@ -625,7 +669,7 @@ function gameLoop(now) {
         if (!player.alive) { switchState('gameover'); return; }
     }
 
-    renderFrame(mapData, player, entities, levelInfo, breakableWalls, doorStates);
+    renderFrame(mapData, player, entities, levelInfo, breakableWalls, doorStates, explored);
     animFrame = requestAnimationFrame(gameLoop);
 }
 

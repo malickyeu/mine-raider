@@ -21,7 +21,7 @@ export function initRenderer(canvasEl) {
     ctx.imageSmoothingEnabled = false;
 }
 
-export function renderFrame(mapData, player, entities, levelInfo, breakableWalls = {}, doorStates = {}) {
+export function renderFrame(mapData, player, entities, levelInfo, breakableWalls = {}, doorStates = {}, explored = null) {
     // ── Pre-filter nearby light sources (torches + mine lights) ──
     const TR2 = (TORCH_RANGE + 2) * (TORCH_RANGE + 2);
     const nearbyTorches = entities.filter(e => {
@@ -220,7 +220,7 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
     ctx.restore();
 
     // ── HUD (drawn without bob/shake offset) ──
-    drawHUD(ctx, player, mapData, levelInfo, doorStates);
+    drawHUD(ctx, player, mapData, levelInfo, doorStates, entities, explored);
 }
 
 export function getContext() { return ctx; }

@@ -2,6 +2,8 @@
 
 > A Wolfenstein 3D-style raycasting game built entirely in **vanilla JavaScript** and **HTML5 Canvas** — no game engine, no bundler, no image or audio assets required.
 
+🕹️ **[LIVE DEMO → mine-raider.koduj.dev](https://mine-raider.koduj.dev/)**
+
 ![Mine Raider Menu](docs/screenshot.png)
 
 ---

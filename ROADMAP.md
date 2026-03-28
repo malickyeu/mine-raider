@@ -1,7 +1,7 @@
 # ⛏️ Mine Raider – Roadmap
 
 > Živý dokument sledující plánované funkce a nápady pro další rozvoj hry.  
-> Poslední aktualizace: **2026-03-28**
+> Poslední aktualizace: **2026-03-28** · rozšířeno na **16 plánovaných features**
 
 ---
 
@@ -23,7 +23,7 @@
 
 ---
 
-## 🔝 Top 10 plánovaných features
+## 🔝 Top 16 plánovaných features
 
 ### 1. 🔦 Dynamické osvětlení (Torch flicker + kužel světla)
 - Pochodně vrhají reálně animované světlo (flicker efekt)
@@ -75,6 +75,42 @@
 - Zobrazí: název dalšího levelu, skóre za aktuální level, čas průchodu
 - Postupně se odkrývající příběh o záhadách starých dolů (několik řádků textu)
 
+### 11. 🎯 Head Bob & Screen Shake
+- `player.bobPhase` je již tracked v `Player.update`, ale nikdy nepoužit v `renderFrame`
+- Zadrátovat `bobPhase` do Y-offsetu pro veškeré renderování — pocit živého pohybu
+- Přidat `shakeTimer` — krátkodobý náhodný posun obrazu při obdržení poškození
+- ~30 řádků kódu, obrovský nárůst pocitu „živosti" hry
+
+### 12. 🚪 Otevíratelné dveře (Sliding Walls)
+- Quintessential Wolf3D feature — nový tile typ `T.DOOR` který se vysouvá klávesou `E`
+- `doorState` mapa (podobně jako `breakableWalls`), animovaný posun textury
+- `castRays` musí zvládnout částečně otevřené dveřní sloupce
+- Nová procedurální textura dveří v `textures.js` — střední úsilí, obrovský herní dopad
+
+### 13. 🎵 Ambientní soundtrack dolu
+- Loopující procedurální ambientní skladba: nízký dronující oscilátor + filtrovaný šum
+- Příležitostné kapky vody / echo tóny generované Web Audio
+- Infrastruktura (`AudioContext`, `OscillatorNode`, `GainNode`) je již připravena v `audio.js`
+- Modulace hlasitosti/tónu dle aktuálního HP nebo blízkosti nepřítele
+
+### 14. 🏃 Sprint + Stamina systém
+- Nové pole `stamina` v `Player`; držení `Shift` pohybuje hráčem rychlostí 1.6× `PLAYER_SPEED`
+- Stamina se při sprintu vyčerpává, při chůzi/stání se regeneruje
+- Malý stamina bar v `drawHUD` (vpravo od HP baru)
+- ~40 řádků, přidává taktické rozhodování při každém souboji a útěku
+
+### 15. 🏹 Ranged zbraň (Kuše / Dynamit)
+- Sekundární zbraň přepínatelná číselnými klávesami vedle pickaxe
+- **Kuše** — hit-scan projektil přes `raycaster.js`, poškodí prvního nepřítele v linii
+- **Dynamit** — vhozený objekt, po 2 s exploduje, poškodí vše v poloměru a rozbije dřevěné zdi
+- Náboje/zásoby jako pickup, nový SFX, HUD indikátor zvolené zbraně
+
+### 16. 👹 Boss nepřítel na finálním levelu
+- Speciální `T.BOSS` typ v `entities.js` — vysoké HP, unikátní vzor útoku (nabíhání + ranged projektil)
+- Větší sprite generovaný v `textures.js` (2× standardní výška)
+- Boss HP bar v `drawHUD` (zobrazí se jen na Level 5)
+- Vítězná fanfára v `audio.js` po jeho porážce — dává kampani uspokojivé vyvrcholení
+
 ---
 
 ## 💡 Further Considerations
@@ -91,7 +127,6 @@ Nápady v ranější fázi nebo vyžadující větší diskusi:
 | **Mobilní ovládání** | On-screen joystick a tlačítka pro touch zařízení |
 | **Exportovat / importovat mapy jako JSON** | Tlačítko v editoru stáhne `.json` soubor, nebo nahraje existující |
 | **Steam-style achievementy** | Lokální odznaky (první zlatý, 100 nepřátel, žádné poškození, apod.) |
-| **Soundtrack (procedurální)** | Ambientní tónová smyčka generovaná Web Audio, modulovaná dle HP / nebezpečí |
 | **Destructible ceilings** | Padající kameny při demolici zdi, vizuální particle efekt |
 | **Minimap editor overlay** | Při editaci velké mapy (128×128) zobrazit minimapu v rohu editoru |
 | **Level editor – undo/redo** | `Ctrl+Z` / `Ctrl+Y` pro editační historii tahů |
@@ -103,24 +138,32 @@ Nápady v ranější fázi nebo vyžadující větší diskusi:
 
 ```
 Sprint 1 (rychlé výhry):
-  → #5 Obtížnosti  (config change)
-  → #6 High score  (localStorage)
-  → #9 Tajné stěny (nový tile + input handler)
+  → #5  Obtížnosti          (config change)
+  → #6  High score          (localStorage)
+  → #11 Head Bob & Shake    (~30 řádků, okamžitý feel upgrade)
+  → #14 Sprint + Stamina    (~40 řádků, taktický dopad)
 
 Sprint 2 (gameplay hloubka):
-  → #2 Klíče & dveře
-  → #3 Výbušné sudy
-  → #4 Pasti
+  → #2  Klíče & dveře
+  → #12 Otevíratelné dveře  (T.DOOR tile + doorState)
+  → #3  Výbušné sudy
+  → #4  Pasti
 
 Sprint 3 (polishing & atmosféra):
-  → #1 Dynamické osvětlení
-  → #7 Automap / Fog of War
+  → #1  Dynamické osvětlení
+  → #13 Ambientní soundtrack
+  → #7  Automap / Fog of War
   → #10 Příběhové obrazovky
 
-Sprint 4 (inventář & tajemství):
-  → #8 Inventář
-  → Tajné stěny (rozšíření)
-  → Procedurální kampaň
+Sprint 4 (zbraně & tajemství):
+  → #15 Ranged zbraň (kuše / dynamit)
+  → #8  Inventář
+  → #9  Tajné stěny
+
+Sprint 5 (endgame & boss):
+  → #16 Boss nepřítel (Level 5)
+  → Rozšíření high score / achievementy
+  → Procedurální kampaň (roguelite mód)
 ```
 
 ---

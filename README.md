@@ -18,18 +18,19 @@ Everything — wall textures, sprites, sounds — is **procedurally generated at
 
 | Category | Details |
 |---|---|
-| **Rendering** | DDA raycasting engine (Wolf3D-style), textured walls, distance fog, floor/ceiling gradients |
-| **Wall types** | Stone, Wood *(breakable)*, Ore, Mossy Stone, Crystal, Iron |
+| **Rendering** | DDA raycasting engine (Wolf3D-style), textured walls, distance fog, floor/ceiling gradients, head bob & screen shake on damage |
+| **Wall types** | Stone, Wood *(breakable)*, Ore, Mossy Stone, Crystal, Iron, **Door** *(openable, Wolf3D-style thin wall with 3D frame)* |
 | **Enemies** | Bat, Spider, Skeleton, Ghost *(phases through walls!)* |
-| **Collectibles** | Gold coins (100 pts), Gemstones (500 pts), Health packs |
+| **Collectibles** | Gold coins (100 pts), Gemstones (500 pts), Health packs (large +30 HP, small +15 HP) |
 | **Decorations** | Torches (ambient), Stone pillars (block movement, transparent sprite) |
+| **Doors** | Press `F` to open; auto-close after 3 s; 3D square frame posts; wood walls adjacent to doors cannot be broken |
 | **Campaign** | 5 hand-crafted levels of increasing size and difficulty |
 | **Difficulty** | Miner / Prospector / Deep Delver — scales enemy HP, speed, damage and attack rate |
 | **Sprint** | Hold `Shift` to move 1.6× faster; stamina bar in HUD drains and regenerates |
 | **Map editor** | Grid-based editor with full palette, level selector, resize, save/load |
 | **i18n** | Czech 🇨🇿 / English 🇬🇧 UI language switch (persisted in localStorage) |
 | **Audio** | Web Audio oscillator-based SFX — no audio files needed |
-| **HUD** | Health bar, stamina bar, score, minimap with toggle, level name + difficulty badge |
+| **HUD** | Health bar, stamina bar, score, minimap with toggle (shows door states), level name + difficulty badge |
 | **Help overlay** | In-game help screen (press `H`) |
 
 ---
@@ -67,6 +68,7 @@ npm run dev
 | `Shift` | Sprint (1.6× speed, drains stamina) |
 | Mouse | Look around (click canvas to lock pointer) |
 | `Space` | Swing pickaxe — attack enemies, break wood walls |
+| `F` | Open / close doors |
 | `M` | Toggle minimap |
 | `H` | Toggle help overlay |
 | `Q` / `E` | Rotate left / right (keyboard alternative) |
@@ -97,6 +99,8 @@ Score and HP carry over between levels. Find the **green exit door 🚪** to adv
 3. The wall darkens with each hit, then disappears — opening a new path
 
 This mechanic unlocks hidden areas and shortcuts in every level.
+
+> **Note:** Wooden walls directly adjacent to a door cannot be broken — they serve as structural supports for the door frame.
 
 ---
 
@@ -151,7 +155,8 @@ action-game/
     ├── config.js        ← All constants, tile type enum, wall sets
     ├── i18n.js          ← Czech / English translations
     ├── map.js           ← 5 built-in campaign levels, save/load, entity extraction
-    ├── raycaster.js     ← DDA raycasting engine
+    ├── mapgen.js        ← Procedural level generator with BFS connectivity guarantee
+    ├── raycaster.js     ← DDA raycasting engine (+ thin-door multi-plane intersection)
     ├── renderer.js      ← Frame orchestration (ceiling, floor, walls, sprites, HUD)
     ├── textures.js      ← Procedural wall textures + billboard sprites
     ├── sprites.js       ← Sprite sorting, depth clipping, billboard rendering
@@ -172,6 +177,8 @@ action-game/
 - **Textures** are generated once into `<canvas>` elements and cached; wall columns are drawn with `drawImage` 1px slice technique
 - **Sprite rendering** uses painter's algorithm (sorted by distance), depth-buffer clipped against the wall depth buffer
 - **Breakable walls** track remaining HP in a `Map` keyed by tile coordinates; damage is visualised as a darkening overlay on each wall column
+- **Doors** are Wolf3D-style thin walls rendered at tile centre via multi-plane intersection in the raycaster (centre plane + frame AABBs); door open/close state is tracked per tile with auto-close timer
+- **Head bob & screen shake** apply Y / XY canvas translation before rendering; HUD is drawn after `ctx.restore()` so it remains stable
 - **Ghost enemy** skips collision checks and always has line-of-sight, making it the most dangerous enemy type
 
 ---

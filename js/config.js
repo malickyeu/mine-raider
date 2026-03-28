@@ -57,11 +57,20 @@ export const T = {
     GHOST:    19,
     PILLAR:   20,   // decorative column – transparent sprite, blocks movement
     HEALTH_SMALL: 21, // small health pack – restores 15 HP
-    DOOR:         22, // openable door – press E to open
+    DOOR:         22, // openable door – press F to open
+    KEY_RED:      23, // red key – unlocks red locked doors
+    KEY_BLUE:     24, // blue key – unlocks blue locked doors
+    DOOR_RED:     25, // red locked door – requires red key
+    DOOR_BLUE:    26, // blue locked door – requires blue key
 };
 
-export const WALL_TYPES = new Set([T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.DOOR]);
-export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.EXIT, T.TORCH, T.HEALTH, T.SPIDER, T.GHOST, T.PILLAR, T.HEALTH_SMALL]);
+export const WALL_TYPES = new Set([T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.DOOR, T.DOOR_RED, T.DOOR_BLUE]);
+export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.EXIT, T.TORCH, T.HEALTH, T.SPIDER, T.GHOST, T.PILLAR, T.HEALTH_SMALL, T.KEY_RED, T.KEY_BLUE]);
+
+// Locked door helpers
+export const LOCKED_DOOR_TYPES = new Set([T.DOOR_RED, T.DOOR_BLUE]);
+export const ALL_DOOR_TYPES = new Set([T.DOOR, T.DOOR_RED, T.DOOR_BLUE]);
+export const DOOR_KEY_MAP = { [T.DOOR_RED]: T.KEY_RED, [T.DOOR_BLUE]: T.KEY_BLUE };
 
 // Breakable walls: tile → initial HP
 export const BREAKABLE_TYPES = new Set([T.WOOD]);
@@ -89,6 +98,10 @@ export const TILE_LABEL_KEYS = {
     [T.PILLAR]:   'tPillar',
     [T.HEALTH_SMALL]: 'tHealthSmall',
     [T.DOOR]:     'tDoor',
+    [T.KEY_RED]:  'tKeyRed',
+    [T.KEY_BLUE]: 'tKeyBlue',
+    [T.DOOR_RED]: 'tDoorRed',
+    [T.DOOR_BLUE]:'tDoorBlue',
 };
 
 export const TILE_COLORS = {
@@ -112,4 +125,8 @@ export const TILE_COLORS = {
     [T.PILLAR]:   '#887766',
     [T.HEALTH_SMALL]: '#cc6688',
     [T.DOOR]:     '#8B6914',
+    [T.KEY_RED]:  '#ff4444',
+    [T.KEY_BLUE]: '#4488ff',
+    [T.DOOR_RED]: '#aa3333',
+    [T.DOOR_BLUE]:'#3333aa',
 };

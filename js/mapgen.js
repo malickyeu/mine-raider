@@ -169,7 +169,132 @@ export function generateMap({
     const ec = centerOf(exitRoom);
     tiles[ec.y][ec.x] = T.EXIT;
 
-    // ── 8. Collect free cells for entity placement ──
+    // ── 8. Place doors (regular + locked) — BEFORE entities & accents ──
+    // Find corridor cells: EMPTY cells with walls on exactly 2 opposite sides
+    function findCorridorCells() {
+        const corridors = [];
+        for (let y = 2; y < height - 2; y++) {
+            for (let x = 2; x < width - 2; x++) {
+                if (tiles[y][x] !== T.EMPTY) continue;
+                const up    = SOLID_WALL_TILES.has(tiles[y-1][x]);
+                const down  = SOLID_WALL_TILES.has(tiles[y+1][x]);
+                const left  = SOLID_WALL_TILES.has(tiles[y][x-1]);
+                const right = SOLID_WALL_TILES.has(tiles[y][x+1]);
+                if ((up && down && !left && !right) || (left && right && !up && !down)) {
+                    corridors.push({ x, y });
+                }
+            }
+        }
+        return corridors;
+    }
+
+    // BFS that treats specific tile positions as impassable
+    function bfsReachable(startX, startY, blockedSet) {
+        const keyFn = (x, y) => y * width + x;
+        const visited = new Set();
+        visited.add(keyFn(startX, startY));
+        const queue = [[startX, startY]];
+        const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+        while (queue.length > 0) {
+            const [cx, cy] = queue.shift();
+            for (const [ddx, ddy] of DIRS) {
+                const nx = cx + ddx, ny = cy + ddy;
+                if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+                const k = keyFn(nx, ny);
+                if (visited.has(k)) continue;
+                if (SOLID_WALL_TILES.has(tiles[ny][nx])) continue;
+                if (blockedSet && blockedSet.has(k)) continue;
+                visited.add(k);
+                queue.push([nx, ny]);
+            }
+        }
+        return visited;
+    }
+
+    // Check that a cell is not inside any room (we want corridor-only doors)
+    function isInsideRoom(cx, cy) {
+        for (const r of rooms) {
+            if (cx >= r.x1 && cx <= r.x2 && cy >= r.y1 && cy <= r.y2) return true;
+        }
+        return false;
+    }
+
+    // Minimum distance between any two doors (avoid clusters)
+    const doorPositions = []; // {x,y} of all placed doors
+    function tooCloseToOtherDoor(cx, cy, minDist) {
+        for (const d of doorPositions) {
+            if (Math.abs(d.x - cx) + Math.abs(d.y - cy) < minDist) return true;
+        }
+        return false;
+    }
+
+    // 8a. Place regular doors (T.DOOR) at corridor chokepoints between rooms
+    const allCorridors = shuffle(findCorridorCells());
+    const regularDoorCount = Math.max(2, Math.floor(rooms.length * 0.6));
+    let regularPlaced = 0;
+
+    for (const cell of allCorridors) {
+        if (regularPlaced >= regularDoorCount) break;
+        if (isInsideRoom(cell.x, cell.y)) continue;
+        if (tooCloseToOtherDoor(cell.x, cell.y, 3)) continue;
+
+        tiles[cell.y][cell.x] = T.DOOR;
+        doorPositions.push(cell);
+        regularPlaced++;
+    }
+
+    // 8b. Place locked doors + keys (BFS-safe)
+    const lockedDoorCount = difficulty === 'easy' ? 0 : difficulty === 'normal' ? 1 : 2;
+    const lockColors = [T.DOOR_RED, T.DOOR_BLUE];
+    const keyColors  = [T.KEY_RED,  T.KEY_BLUE];
+    const placedLockKeys = new Set(); // blocked positions for BFS
+
+    for (let i = 0; i < lockedDoorCount; i++) {
+        // Re-scan corridors (some are now doors or close to doors)
+        const corridors = shuffle(findCorridorCells());
+        let placed = false;
+
+        for (const cell of corridors) {
+            if (isInsideRoom(cell.x, cell.y)) continue;
+            if (tooCloseToOtherDoor(cell.x, cell.y, 4)) continue;
+
+            const doorKey = cell.y * width + cell.x;
+
+            // Temporarily block this cell and all existing locked doors
+            const blocked = new Set(placedLockKeys);
+            blocked.add(doorKey);
+            // Also treat regular doors as passable for BFS (they're always openable)
+
+            const reachable = bfsReachable(sc.x, sc.y, blocked);
+
+            // Exit must still be reachable without this door
+            if (!reachable.has(ec.y * width + ec.x)) continue;
+
+            // Collect empty reachable cells for key placement (not player, not exit)
+            const reachableEmpty = [];
+            for (const k of reachable) {
+                const ry = Math.floor(k / width);
+                const rx = k % width;
+                if (tiles[ry][rx] === T.EMPTY && !(rx === sc.x && ry === sc.y)) {
+                    reachableEmpty.push({ x: rx, y: ry });
+                }
+            }
+            if (reachableEmpty.length === 0) continue;
+
+            // Place locked door
+            tiles[cell.y][cell.x] = lockColors[i];
+            placedLockKeys.add(doorKey);
+            doorPositions.push(cell);
+
+            // Place matching key on a reachable cell
+            const keyCell = reachableEmpty[Math.floor(Math.random() * reachableEmpty.length)];
+            tiles[keyCell.y][keyCell.x] = keyColors[i];
+            placed = true;
+            break;
+        }
+    }
+
+    // ── 9. Collect free cells for entity placement ──
     const allEmpty    = [];
     const nonStartEmpty = [];
     for (let y = 1; y < height - 1; y++) {
@@ -212,7 +337,7 @@ export function generateMap({
     placeEntities(T.SPIDER,   Math.max(0, Math.round(DS.spiders * scale)),          nonStartEmpty);
     placeEntities(T.GHOST,    Math.max(0, Math.round(DS.ghosts  * scale)),          nonStartEmpty);
 
-    // ── 9. Wall accent decoration ──
+    // ── 10. Wall accent decoration ──
     if (wallType === T.STONE) {
         addWallAccents(tiles, width, height, T.STONE,   T.ORE,   0.05);
         addWallAccents(tiles, width, height, T.STONE,   T.MOSSY, 0.04);

@@ -23,6 +23,7 @@ export class Player {
         this.sprinting = false;
         this.staminaExhausted = false;
         this.shakeTimer = 0;
+        this.keys = new Set();  // collected key types (T.KEY_RED, T.KEY_BLUE)
     }
 
     update(dt, mapData, doorStates) {
@@ -278,6 +279,13 @@ export class Pillar extends Entity {
     }
 }
 
+// ── KeyItem ── collectible key for locked doors
+export class KeyItem extends Entity {
+    constructor(type, x, y) {
+        super(type, x, y);
+    }
+}
+
 /** Create entity instances from extracted entity list */
 export function createEntities(entityList, difficulty = null) {
     const entities = [];
@@ -307,6 +315,10 @@ export function createEntities(entityList, difficulty = null) {
                 break;
             case T.PILLAR:
                 entities.push(new Pillar(e.x, e.y));
+                break;
+            case T.KEY_RED:
+            case T.KEY_BLUE:
+                entities.push(new KeyItem(e.type, e.x, e.y));
                 break;
         }
     }

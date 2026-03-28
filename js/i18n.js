@@ -32,7 +32,7 @@ const translations = {
             'SHIFT — Sprint (spotřebovává staminu)',
             'Myš — Rozhlížení',
             'SPACE — Útok krumpáčem',
-            'F — Otevřít dveře',
+            'F — Otevřít dveře (zamčené vyžadují klíč)',
             'M — Skrýt / zobrazit mapu',
             'H — Nápověda',
             'ESC — Menu',
@@ -120,6 +120,10 @@ const translations = {
         tGhost:    'Duch',      tPillar:   'Pilíř',
         tHealthSmall: 'Malé zdraví',
         tDoor:     'Dveře',
+        tKeyRed:   'Červený klíč',
+        tKeyBlue:  'Modrý klíč',
+        tDoorRed:  'Červené dveře',
+        tDoorBlue: 'Modré dveře',
     },
 
     en: {
@@ -148,7 +152,7 @@ const translations = {
             'SHIFT — Sprint (uses stamina)',
             'Mouse — Look around',
             'SPACE — Pickaxe attack',
-            'F — Open door',
+            'F — Open door (locked doors need a key)',
             'SPACE at wood wall — Break wall (3 hits)',
             'M — Toggle minimap',
             'H — Help',
@@ -227,6 +231,10 @@ const translations = {
         tGhost:    'Ghost',     tPillar:   'Pillar',
         tHealthSmall: 'Small Health',
         tDoor:     'Door',
+        tKeyRed:   'Red Key',
+        tKeyBlue:  'Blue Key',
+        tDoorRed:  'Red Door',
+        tDoorBlue: 'Blue Door',
 
         // Level names
         level1Name: 'Level 1 – Abandoned Mine',

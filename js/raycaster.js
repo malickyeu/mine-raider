@@ -1,6 +1,6 @@
 /* ── raycaster.js ── DDA raycasting engine ── */
 
-import { SCREEN_W, FOV, HALF_FOV, T, WALL_TYPES } from './config.js';
+import { SCREEN_W, FOV, HALF_FOV, T, WALL_TYPES, ALL_DOOR_TYPES } from './config.js';
 import { getTile, isWall } from './map.js';
 
 /**
@@ -45,6 +45,7 @@ export function castRays(mapData, px, py, pAngle, drawColumn, doorStates = {}) {
         let hit = false;
         let hitDoor = false;
         let hitDoorFrame = false;
+        let hitDoorTile = T.DOOR;
         let doorTexX = 0;
         let doorPerpDist = 0;
         let doorFrameType = T.STONE;
@@ -64,7 +65,7 @@ export function castRays(mapData, px, py, pAngle, drawColumn, doorStates = {}) {
 
             const tile = getTile(mapData, mapX, mapY);
 
-            if (tile === T.DOOR) {
+            if (ALL_DOOR_TYPES.has(tile)) {
                 const ds = doorStates[`${mapX},${mapY}`];
                 const openAmt = ds ? ds.open : 0;
 
@@ -73,14 +74,14 @@ export function castRays(mapData, px, py, pAngle, drawColumn, doorStates = {}) {
                 // Walls left/right → door runs E-W (horizontal, plane ⊥ Y)
                 const upT   = getTile(mapData, mapX, mapY - 1);
                 const downT = getTile(mapData, mapX, mapY + 1);
-                const isVert = (WALL_TYPES.has(upT) && upT !== T.DOOR) ||
-                               (WALL_TYPES.has(downT) && downT !== T.DOOR);
+                const isVert = (WALL_TYPES.has(upT) && !ALL_DOOR_TYPES.has(upT)) ||
+                               (WALL_TYPES.has(downT) && !ALL_DOOR_TYPES.has(downT));
 
                 // Adjacent wall type for frame texture
                 let fType = T.STONE;
                 for (const [nx, ny] of [[mapX-1,mapY],[mapX+1,mapY],[mapX,mapY-1],[mapX,mapY+1]]) {
                     const nt = getTile(mapData, nx, ny);
-                    if (WALL_TYPES.has(nt) && nt !== T.DOOR) { fType = nt; break; }
+                    if (WALL_TYPES.has(nt) && !ALL_DOOR_TYPES.has(nt)) { fType = nt; break; }
                 }
 
                 // Frame posts are square columns at center of tile:
@@ -210,6 +211,7 @@ export function castRays(mapData, px, py, pAngle, drawColumn, doorStates = {}) {
                 if (bestT < 1e30) {
                     hitDoor = true;
                     hitDoorFrame = bestIsFrame;
+                    hitDoorTile = tile;
                     doorFrameType = fType;
                     doorTexX = bestTexX;
                     doorPerpDist = bestT;
@@ -241,7 +243,7 @@ export function castRays(mapData, px, py, pAngle, drawColumn, doorStates = {}) {
                 // Frame uses adjacent wall texture
                 drawColumn(col, correctedDist, doorFrameType, doorTexX, side, mapX, mapY);
             } else {
-                drawColumn(col, correctedDist, T.DOOR, doorTexX, side, mapX, mapY);
+                drawColumn(col, correctedDist, hitDoorTile, doorTexX, side, mapX, mapY);
             }
             continue;
         }

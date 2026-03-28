@@ -1,6 +1,6 @@
 /* ── map.js ── map data, load / save, multi-level campaign ── */
 
-import { T, WALL_TYPES, ENTITY_TYPES } from './config.js';
+import { T, WALL_TYPES, ENTITY_TYPES, ALL_DOOR_TYPES } from './config.js';
 
 const STORAGE_KEY = 'mine_raider_map';
 
@@ -110,6 +110,7 @@ function level4() {
     const W = 28, H = 28;
     const S = T.STONE, D = T.WOOD, O = T.ORE, Y = T.MOSSY, C = T.CRYSTAL, N = T.IRON, _ = T.EMPTY;
     const P = T.PLAYER, G = T.GOLD, M = T.GEM, B = T.BAT, K = T.SKELETON, E = T.EXIT, R = T.TORCH, L = T.HEALTH, I = T.SPIDER, H_ = T.GHOST;
+    const DR = T.DOOR_RED, DB = T.DOOR_BLUE, KR = T.KEY_RED, KB = T.KEY_BLUE;
     // prettier-ignore
     const tiles = [
         [S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S],
@@ -120,17 +121,17 @@ function level4() {
         [S,_,_,S,R,_,_,_,_,_,_,_,_,_,B,_,S,_,_,Y,_,G,Y,_,_,_,_,S],
         [S,_,_,_,_,_,S,S,_,_,_,_,_,_,_,_,S,_,_,Y,_,_,Y,_,_,_,_,S],
         [S,_,_,I,_,_,S,M,_,_,N,N,N,D,N,N,N,_,_,Y,Y,D,Y,_,_,_,_,S],
-        [S,_,_,_,_,_,S,_,_,_,N,_,_,_,_,_,N,_,_,_,_,_,_,_,_,K,_,S],
+        [S,_,_,_,KR,_,S,_,_,_,N,_,_,_,_,_,N,_,_,_,_,_,_,_,_,K,_,S],
         [S,S,D,S,S,_,_,_,_,_,N,_,H_,_,_,_,N,_,_,_,_,_,_,_,_,_,_,S],
-        [S,_,_,_,_,_,_,_,_,_,N,_,_,_,M,_,N,_,_,S,S,S,S,D,S,S,S,S],
+        [S,_,_,_,_,_,_,_,_,_,N,_,_,_,M,_,N,_,_,S,S,S,S,DR,S,S,S,S],
         [S,_,G,_,_,_,_,_,_,_,N,_,_,_,_,_,N,_,_,S,_,_,_,_,_,_,R,S],
         [S,_,_,_,_,C,C,C,_,_,N,N,D,N,N,N,N,_,_,S,_,_,_,_,_,_,_,S],
         [S,_,_,_,_,C,L,C,_,_,_,_,_,_,_,_,_,_,_,S,_,_,K,_,_,_,_,S],
         [S,_,_,B,_,C,_,C,_,_,_,_,_,_,_,_,_,_,_,D,_,_,_,_,_,_,_,S],
         [S,_,_,_,_,_,_,_,_,_,O,O,O,_,_,_,_,_,_,S,_,_,_,_,G,_,_,S],
         [S,S,S,D,S,S,_,_,_,_,O,M,O,_,_,C,C,C,_,S,_,_,_,_,_,_,_,S],
-        [S,_,_,_,_,S,_,_,_,_,O,_,_,_,_,C,_,_,_,S,S,S,S,_,_,S,S,S],
-        [S,_,G,_,_,D,_,_,_,_,_,_,_,_,_,D,_,_,_,_,_,_,_,_,_,_,E,S],
+        [S,_,_,_,_,S,_,_,_,_,O,_,_,_,_,C,_,KB,_,S,S,S,S,_,_,S,S,S],
+        [S,_,G,_,_,D,_,_,_,_,_,_,_,_,_,DB,_,_,_,_,_,_,_,_,_,_,E,S],
         [S,_,_,_,_,S,_,_,Y,Y,Y,Y,_,_,_,C,_,_,_,_,_,_,_,_,_,_,_,S],
         [S,_,_,I,_,S,_,_,Y,R,_,Y,_,_,_,C,_,_,C,C,D,C,_,_,S,S,S,S],
         [S,_,_,_,_,S,_,_,Y,_,_,D,_,_,_,C,_,_,C,M,_,C,_,_,_,_,_,S],
@@ -257,7 +258,7 @@ export function extractEntities(mapData) {
 export function isWall(mapData, gx, gy, doorStates) {
     if (gx < 0 || gy < 0 || gx >= mapData.width || gy >= mapData.height) return true;
     const tile = mapData.tiles[gy][gx];
-    if (tile === T.DOOR && doorStates) {
+    if (ALL_DOOR_TYPES.has(tile) && doorStates) {
         const ds = doorStates[`${gx},${gy}`];
         if (ds && ds.open >= 0.9) return false; // open door is passable
     }

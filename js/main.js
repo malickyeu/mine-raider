@@ -1,12 +1,12 @@
 /* ── main.js ── game bootstrap, state machine, game loop ── */
 
-import { T, BREAKABLE_TYPES, WALL_HP, DIFFICULTIES, GAME_VERSION } from './config.js';
+import { T, BREAKABLE_TYPES, WALL_HP, DIFFICULTIES, GAME_VERSION, ALL_DOOR_TYPES, LOCKED_DOOR_TYPES, DOOR_KEY_MAP } from './config.js';
 import { loadMap, extractEntities, getCampaignLevel, getCampaignLength, isWall, getTile } from './map.js';
 import { initInput, releasePointer, isDown } from './input.js';
 import { initRenderer, renderFrame } from './renderer.js';
-import { Player, Enemy, Treasure, HealthPack, SmallHealthPack, Exit, Torch, Pillar, createEntities } from './entities.js';
+import { Player, Enemy, Treasure, HealthPack, SmallHealthPack, Exit, Torch, Pillar, KeyItem, createEntities } from './entities.js';
 import { initEditor, showEditor, rebuildEditorUI } from './editor.js';
-import { sfxPickup, sfxGem, sfxAttack, sfxDeath, sfxWin, sfxHeal, sfxEnemyDeath, sfxHitWood, sfxBreakWood, sfxDoorOpen } from './audio.js';
+import { sfxPickup, sfxGem, sfxAttack, sfxDeath, sfxWin, sfxHeal, sfxEnemyDeath, sfxHitWood, sfxBreakWood, sfxDoorOpen, sfxDoorLocked, sfxKeyPickup } from './audio.js';
 import { toggleMinimap, toggleHelp, isHelpVisible, hideHelp } from './hud.js';
 import { t, toggleLang } from './i18n.js';
 
@@ -136,6 +136,7 @@ overlayBtn.addEventListener('click', () => {
 // ── Keyboard shortcuts ──
 let mKeyWasDown = false;
 let hKeyWasDown = false;
+let fKeyWasDown = false;
 
 window.addEventListener('keydown', e => {
     if (e.code === 'Escape') {
@@ -159,6 +160,7 @@ window.addEventListener('keydown', e => {
 window.addEventListener('keyup', e => {
     if (e.code === 'KeyM') mKeyWasDown = false;
     if (e.code === 'KeyH') hKeyWasDown = false;
+    if (e.code === 'KeyF') fKeyWasDown = false;
 });
 
 function switchState(newState) {
@@ -248,10 +250,12 @@ function startGame() {
 
     const prevScore = (player && gameMode === 'campaign') ? player.score : 0;
     const prevHp = (player && gameMode === 'campaign') ? player.hp : null;
+    const prevKeys = (player && gameMode === 'campaign') ? new Set(player.keys) : new Set();
 
     player = new Player(playerStart.x, playerStart.y);
     player.score = prevScore;
     if (prevHp !== null) player.hp = prevHp;
+    player.keys = prevKeys;
 
     entities = createEntities(entList, DIFFICULTIES[selectedDifficulty]);
     breakableWalls = {};
@@ -289,17 +293,40 @@ function gameLoop(now) {
         player.update(dt, mapData, doorStates);
 
         // ── Open/close doors (F key) ──
-        if (isDown('KeyF')) {
+        if (isDown('KeyF') && !fKeyWasDown) {
+            fKeyWasDown = true;
             const cosA = Math.cos(player.angle);
             const sinA = Math.sin(player.angle);
             for (let d = 0.5; d <= 1.5; d += 0.25) {
                 const dx = Math.floor(player.x + cosA * d);
                 const dy = Math.floor(player.y + sinA * d);
-                if (getTile(mapData, dx, dy) === T.DOOR) {
+                const tile = getTile(mapData, dx, dy);
+                if (ALL_DOOR_TYPES.has(tile)) {
                     const key = `${dx},${dy}`;
+                    // Check if locked door requires a key
+                    if (LOCKED_DOOR_TYPES.has(tile)) {
+                        const alreadyUnlocked = doorStates[key] && doorStates[key].unlocked;
+                        if (!alreadyUnlocked) {
+                            const requiredKey = DOOR_KEY_MAP[tile];
+                            if (!player.keys.has(requiredKey)) {
+                                sfxDoorLocked();
+                                break;
+                            }
+                        }
+                    }
                     const ds = doorStates[key];
                     if (!ds) {
-                        doorStates[key] = { open: 0, opening: true, closeTimer: 0 };
+                        // First open (or first unlock)
+                        doorStates[key] = {
+                            open: 0, opening: true, closeTimer: 0,
+                            unlocked: LOCKED_DOOR_TYPES.has(tile) || false,
+                        };
+                        sfxDoorOpen();
+                    } else if (ds.open <= 0 && !ds.opening) {
+                        // Re-open a fully closed door
+                        ds.opening = true;
+                        ds.closing = false;
+                        ds.closeTimer = 0;
                         sfxDoorOpen();
                     } else if (ds.open >= 1 && !ds.closing) {
                         // Manual close
@@ -334,7 +361,13 @@ function gameLoop(now) {
                 if (!blocked) {
                     ds.open = Math.max(0, ds.open - dt * 2);
                     if (ds.open <= 0) {
-                        delete doorStates[key]; // fully closed, back to normal wall
+                        if (ds.unlocked) {
+                            // Keep entry so door remembers it was unlocked
+                            ds.open = 0;
+                            ds.closing = false;
+                        } else {
+                            delete doorStates[key]; // fully closed, back to normal wall
+                        }
                     }
                 }
             }
@@ -383,10 +416,10 @@ function gameLoop(now) {
                 const tile = getTile(mapData, wx, wy);
                 if (BREAKABLE_TYPES.has(tile)) {
                     // Don't break walls adjacent to doors (structural support)
-                    const adjDoor = getTile(mapData, wx-1, wy) === T.DOOR ||
-                                    getTile(mapData, wx+1, wy) === T.DOOR ||
-                                    getTile(mapData, wx, wy-1) === T.DOOR ||
-                                    getTile(mapData, wx, wy+1) === T.DOOR;
+                    const adjDoor = ALL_DOOR_TYPES.has(getTile(mapData, wx-1, wy)) ||
+                                    ALL_DOOR_TYPES.has(getTile(mapData, wx+1, wy)) ||
+                                    ALL_DOOR_TYPES.has(getTile(mapData, wx, wy-1)) ||
+                                    ALL_DOOR_TYPES.has(getTile(mapData, wx, wy+1));
                     if (adjDoor) break;
 
                     const key = `${wx},${wy}`;
@@ -421,6 +454,10 @@ function gameLoop(now) {
                     ent.alive = false;
                     player.addScore(ent.value);
                     if (ent.type === T.GEM) sfxGem(); else sfxPickup();
+                } else if (ent instanceof KeyItem) {
+                    ent.alive = false;
+                    player.keys.add(ent.type);
+                    sfxKeyPickup();
                 } else if (ent instanceof HealthPack || ent instanceof SmallHealthPack) {
                     if (player.hp < player.maxHp) {
                         ent.alive = false;

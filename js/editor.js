@@ -1,6 +1,6 @@
 /* ── editor.js ── grid-based map editor with tabbed UI ── */
 
-import { T, TILE_LABEL_KEYS, TILE_COLORS, ENTITY_TYPES } from './config.js';
+import { T, TILE_LABEL_KEYS, TILE_COLORS } from './config.js';
 import { loadMap, saveMap, createEmptyMap, createDefaultMap, getCampaignLevel, getCampaignLength } from './map.js';
 import { t } from './i18n.js';
 import { generateMap } from './mapgen.js';
@@ -18,9 +18,9 @@ let activeTab = 'tiles';
 const PANEL_W = 224; // matches CSS width
 
 const ALL_TILES = [
-    T.EMPTY, T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.DOOR,
+    T.EMPTY, T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.DOOR, T.DOOR_RED, T.DOOR_BLUE,
     T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.SPIDER, T.GHOST,
-    T.EXIT, T.TORCH, T.HEALTH, T.HEALTH_SMALL, T.PILLAR,
+    T.EXIT, T.TORCH, T.HEALTH, T.HEALTH_SMALL, T.PILLAR, T.KEY_RED, T.KEY_BLUE,
 ];
 
 // ════════════════════════════════════════
@@ -402,7 +402,8 @@ function drawGrid() {
         [T.BAT]:      '🦇', [T.SKELETON]: '💀', [T.SPIDER]:'🕷️',
         [T.GHOST]:    '👻', [T.EXIT]:      '🚪', [T.TORCH]: '🔥',
         [T.HEALTH]:   '❤️', [T.HEALTH_SMALL]: '🩹', [T.PILLAR]: '🪨',
-        [T.DOOR]:     '🚪',
+        [T.DOOR]:     '🚪', [T.KEY_RED]:  '🔑', [T.KEY_BLUE]: '🔑',
+        [T.DOOR_RED]: '🔒', [T.DOOR_BLUE]: '🔒',
     };
     for (let y = 0; y < mapData.height; y++) {
         for (let x = 0; x < mapData.width; x++) {
@@ -411,7 +412,7 @@ function drawGrid() {
             ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
             ctx.strokeStyle = 'rgba(255,255,255,0.07)';
             ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
-            if (ENTITY_TYPES.has(tile) && icons[tile]) {
+            if (icons[tile]) {
                 ctx.font = `${Math.max(10, cellSize - 6)}px sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';

@@ -1,6 +1,6 @@
 /* ── hud.js ── heads-up display: health, score, minimap, level ── */
 
-import { SCREEN_W, SCREEN_H, MINIMAP_SCALE, MINIMAP_MARGIN, WALL_TYPES, T } from './config.js';
+import { SCREEN_W, SCREEN_H, MINIMAP_SCALE, MINIMAP_MARGIN, WALL_TYPES, T, ALL_DOOR_TYPES } from './config.js';
 import { t } from './i18n.js';
 
 let minimapVisible = true;
@@ -74,10 +74,29 @@ export function drawHUD(ctx, player, mapData, levelInfo, doorStates = {}) {
 
     // ── Score ──
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(barX - 2, barY - 26, 120, 20);
+    ctx.fillRect(barX - 2, barY - 28, 168, 24);
     ctx.fillStyle = '#ffd700';
     ctx.font = 'bold 13px monospace';
-    ctx.fillText(`\u26CF ${player.score}`, barX + 4, barY - 11);
+    ctx.fillText(`\u26CF ${player.score}`, barX + 4, barY - 12);
+
+    // ── Key inventory ──
+    if (player.keys && player.keys.size > 0) {
+        let kx = barX + 126;
+        const ky = barY - 25;
+        for (const keyType of [T.KEY_RED, T.KEY_BLUE]) {
+            if (!player.keys.has(keyType)) continue;
+            const kColor = keyType === T.KEY_RED ? '#ff4444' : '#4488ff';
+            // Draw small key icon: ring + shaft + teeth
+            ctx.strokeStyle = kColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(kx + 5, ky + 6, 4, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = kColor;
+            ctx.fillRect(kx + 3, ky + 10, 3, 7);
+            ctx.fillRect(kx + 6, ky + 13, 3, 2);
+            ctx.fillRect(kx + 6, ky + 16, 2, 2);
+            kx += 18;
+        }
+    }
 
     // ── Level indicator (top center) ──
     if (levelInfo) {
@@ -124,7 +143,7 @@ export function drawHUD(ctx, player, mapData, levelInfo, doorStates = {}) {
         for (let y = offY; y < tileY1; y++) {
             for (let x = offX; x < tileX1; x++) {
                 const tile = mapData.tiles[y][x];
-                if (tile === T.DOOR) continue; // doors drawn separately below
+                if (ALL_DOOR_TYPES.has(tile)) continue; // doors drawn separately below
                 if (!WALL_TYPES.has(tile)) continue;
                 ctx.fillStyle = WALL_COLORS[tile] || '#555';
                 ctx.fillRect(
@@ -138,7 +157,8 @@ export function drawHUD(ctx, player, mapData, levelInfo, doorStates = {}) {
         // ── Doors: thin line at tile center, gap when open ──
         for (let y = offY; y < tileY1; y++) {
             for (let x = offX; x < tileX1; x++) {
-                if (mapData.tiles[y][x] !== T.DOOR) continue;
+                const tile = mapData.tiles[y][x];
+                if (!ALL_DOOR_TYPES.has(tile)) continue;
                 const ds = doorStates[`${x},${y}`];
                 const openAmt = ds ? ds.open : 0;
                 if (openAmt >= 0.99) continue; // fully open → invisible
@@ -148,10 +168,14 @@ export function drawHUD(ctx, player, mapData, levelInfo, doorStates = {}) {
                 const s = MINIMAP_SCALE;
                 const closedPx = s * (1 - openAmt);
 
-                ctx.fillStyle = '#aa8833';
+                // Color by door type
+                if (tile === T.DOOR_RED) ctx.fillStyle = '#ff4444';
+                else if (tile === T.DOOR_BLUE) ctx.fillStyle = '#4488ff';
+                else ctx.fillStyle = '#aa8833';
+
                 // Walls above/below → vertical door (line along Y), else horizontal
-                const hasWallUp   = y > 0 && WALL_TYPES.has(mapData.tiles[y - 1][x]) && mapData.tiles[y - 1][x] !== T.DOOR;
-                const hasWallDown = y < mapData.height - 1 && WALL_TYPES.has(mapData.tiles[y + 1][x]) && mapData.tiles[y + 1][x] !== T.DOOR;
+                const hasWallUp   = y > 0 && WALL_TYPES.has(mapData.tiles[y - 1][x]) && !ALL_DOOR_TYPES.has(mapData.tiles[y - 1][x]);
+                const hasWallDown = y < mapData.height - 1 && WALL_TYPES.has(mapData.tiles[y + 1][x]) && !ALL_DOOR_TYPES.has(mapData.tiles[y + 1][x]);
                 if (hasWallUp || hasWallDown) {
                     // Door runs N-S (vertical), draw vertical line at center
                     ctx.fillRect(tx + s / 2 - 1, ty, 2, closedPx);

@@ -36,9 +36,12 @@ No build step. Changes to `js/` or `index.html` take effect on browser reload. T
 ### Tile Type System (`config.js`)
 Every tile (walls, entities, collectibles) is a number defined in the `T` object:
 ```js
-export const T = { EMPTY: 0, STONE: 1, WOOD: 2, ..., GHOST: 19, PILLAR: 20, HEALTH_SMALL: 21, DOOR: 22 };
-export const WALL_TYPES   = new Set([T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.DOOR]);
-export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, ...]);
+export const T = { EMPTY: 0, STONE: 1, WOOD: 2, ..., GHOST: 19, PILLAR: 20, HEALTH_SMALL: 21, DOOR: 22, KEY_RED: 23, KEY_BLUE: 24, DOOR_RED: 25, DOOR_BLUE: 26 };
+export const WALL_TYPES   = new Set([T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.DOOR, T.DOOR_RED, T.DOOR_BLUE]);
+export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, ..., T.KEY_RED, T.KEY_BLUE]);
+export const LOCKED_DOOR_TYPES = new Set([T.DOOR_RED, T.DOOR_BLUE]);
+export const ALL_DOOR_TYPES    = new Set([T.DOOR, T.DOOR_RED, T.DOOR_BLUE]);
+export const DOOR_KEY_MAP      = { [T.DOOR_RED]: T.KEY_RED, [T.DOOR_BLUE]: T.KEY_BLUE };
 ```
 **Adding a new tile type** requires updates in: `T`, the appropriate Set (`WALL_TYPES` or `ENTITY_TYPES`), `TILE_COLORS`, `TILE_LABEL_KEYS`, and a texture generator in `textures.js`.
 
@@ -71,6 +74,16 @@ let doorStates = {};  // "x,y" → { open: 0..1, opening: bool, closing: bool, c
 - **Collision**: `isWall(mapData, gx, gy, doorStates)` — open doors (≥90%) are passable; `doorStates` must be passed through `moveWithCollision`
 - **Auto-close** after 3 s; blocked if entity stands in tile
 - Interaction key: `F` (not `E` — `E` was previously rotation)
+
+### Locked Doors & Keys (`config.js`, `main.js`, `entities.js`)
+Two colored locked door types (`T.DOOR_RED`, `T.DOOR_BLUE`) and matching key entities (`T.KEY_RED`, `T.KEY_BLUE`):
+- **Locked doors** render like regular doors but with red/blue tinted textures and a lock icon
+- **Keys** are collectible billboard sprites stored in `player.keys` (a `Set`)
+- Pressing `F` at a locked door checks `player.keys.has(DOOR_KEY_MAP[tile])`; if missing → `sfxDoorLocked()` plays; if present → `doorStates[key].unlocked = true` is set and the door opens normally — **the tile type is never changed**, so the colored texture and minimap color are always preserved
+- **Minimap** shows locked doors in matching color (#ff4444 red, #4488ff blue)
+- **HUD** draws small key icons next to the score when keys are collected
+- **Map generator** (`mapgen.js`) places locked doors at corridor chokepoints; BFS ensures keys are reachable without passing through their own locked door
+- Keys persist across campaign levels (carried like score/HP)
 
 ### Head Bob & Screen Shake (`renderer.js`, `entities.js`)
 `player.bobPhase` drives Y-offset via `ctx.translate()` at frame start. `player.shakeTimer` (set in `takeDamage()`) adds random X/Y jitter. HUD is drawn after `ctx.restore()` so it stays stable.

@@ -82,3 +82,16 @@ export function sfxDoorOpen() {
     setTimeout(() => playTone(250, 0.15, 'sine', 0.06), 80);
 }
 
+export function sfxDoorLocked() {
+    // dissonant buzz – door won't open without a key
+    playTone(100, 0.1, 'sawtooth', 0.12);
+    setTimeout(() => playTone(80, 0.15, 'sawtooth', 0.1), 80);
+}
+
+export function sfxKeyPickup() {
+    // bright ascending jingle
+    playTone(700, 0.08, 'sine', 0.12);
+    setTimeout(() => playTone(900, 0.08, 'sine', 0.12), 60);
+    setTimeout(() => playTone(1200, 0.15, 'sine', 0.1), 120);
+}
+

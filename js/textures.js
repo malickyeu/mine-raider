@@ -198,14 +198,68 @@ function genDoor() {
     return c;
 }
 
+function genDoorRed() {
+    const c = createCanvas(TEX_SIZE, TEX_SIZE);
+    const ctx = c.getContext('2d');
+    noise(ctx, TEX_SIZE, TEX_SIZE, 120, 50, 40, 20);
+    // Door frame (dark red)
+    ctx.fillStyle = 'rgba(80,20,15,0.6)';
+    ctx.fillRect(0, 0, 3, TEX_SIZE);
+    ctx.fillRect(TEX_SIZE - 3, 0, 3, TEX_SIZE);
+    ctx.fillRect(0, 0, TEX_SIZE, 3);
+    ctx.fillRect(0, TEX_SIZE - 3, TEX_SIZE, 3);
+    // Cross brace
+    ctx.strokeStyle = 'rgba(100,30,20,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(3, 3); ctx.lineTo(TEX_SIZE - 3, TEX_SIZE - 3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(TEX_SIZE - 3, 3); ctx.lineTo(3, TEX_SIZE - 3); ctx.stroke();
+    // Lock icon (red tinted)
+    ctx.fillStyle = '#cc4444';
+    ctx.beginPath(); ctx.arc(TEX_SIZE / 2, TEX_SIZE / 2, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#881111';
+    ctx.fillRect(TEX_SIZE / 2 - 4, TEX_SIZE / 2 + 2, 8, 6);
+    // Handle
+    ctx.fillStyle = '#cc5533';
+    ctx.beginPath(); ctx.arc(TEX_SIZE - 12, TEX_SIZE / 2, 3, 0, Math.PI * 2); ctx.fill();
+    return c;
+}
+
+function genDoorBlue() {
+    const c = createCanvas(TEX_SIZE, TEX_SIZE);
+    const ctx = c.getContext('2d');
+    noise(ctx, TEX_SIZE, TEX_SIZE, 50, 60, 130, 20);
+    // Door frame (dark blue)
+    ctx.fillStyle = 'rgba(15,20,80,0.6)';
+    ctx.fillRect(0, 0, 3, TEX_SIZE);
+    ctx.fillRect(TEX_SIZE - 3, 0, 3, TEX_SIZE);
+    ctx.fillRect(0, 0, TEX_SIZE, 3);
+    ctx.fillRect(0, TEX_SIZE - 3, TEX_SIZE, 3);
+    // Cross brace
+    ctx.strokeStyle = 'rgba(20,30,100,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(3, 3); ctx.lineTo(TEX_SIZE - 3, TEX_SIZE - 3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(TEX_SIZE - 3, 3); ctx.lineTo(3, TEX_SIZE - 3); ctx.stroke();
+    // Lock icon (blue tinted)
+    ctx.fillStyle = '#4488ff';
+    ctx.beginPath(); ctx.arc(TEX_SIZE / 2, TEX_SIZE / 2, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#113388';
+    ctx.fillRect(TEX_SIZE / 2 - 4, TEX_SIZE / 2 + 2, 8, 6);
+    // Handle
+    ctx.fillStyle = '#3366cc';
+    ctx.beginPath(); ctx.arc(TEX_SIZE - 12, TEX_SIZE / 2, 3, 0, Math.PI * 2); ctx.fill();
+    return c;
+}
+
 const generators = {
-    [T.STONE]:   genStone,
-    [T.WOOD]:    genWood,
-    [T.ORE]:     genOre,
-    [T.MOSSY]:   genMossy,
-    [T.CRYSTAL]: genCrystal,
-    [T.IRON]:    genIron,
-    [T.DOOR]:    genDoor,
+    [T.STONE]:     genStone,
+    [T.WOOD]:      genWood,
+    [T.ORE]:       genOre,
+    [T.MOSSY]:     genMossy,
+    [T.CRYSTAL]:   genCrystal,
+    [T.IRON]:      genIron,
+    [T.DOOR]:      genDoor,
+    [T.DOOR_RED]:  genDoorRed,
+    [T.DOOR_BLUE]: genDoorBlue,
 };
 
 export function getTexture(tileType) {
@@ -454,6 +508,33 @@ function drawPillar() {
     return c;
 }
 
+function drawKey(color, highlight, shadow) {
+    const c = createCanvas(32, 32);
+    const ctx = c.getContext('2d');
+    // Key bow (round ring at top)
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(16, 10, 6, 0, Math.PI * 2); ctx.stroke();
+    // Highlight on bow
+    ctx.strokeStyle = highlight;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(14, 8, 3, Math.PI * 1.2, Math.PI * 1.8); ctx.stroke();
+    // Shaft
+    ctx.fillStyle = color;
+    ctx.fillRect(14, 16, 4, 12);
+    // Teeth
+    ctx.fillStyle = shadow;
+    ctx.fillRect(18, 22, 4, 2);
+    ctx.fillRect(18, 26, 3, 2);
+    // Shaft highlight
+    ctx.fillStyle = highlight;
+    ctx.fillRect(15, 16, 1, 12);
+    return c;
+}
+
+function drawKeyRed()  { return drawKey('#ff4444', '#ff8888', '#aa2222'); }
+function drawKeyBlue() { return drawKey('#4488ff', '#88bbff', '#2255aa'); }
+
 // Pillar needs its own cache so alpha is preserved
 const pillarCache = {};
 export function getPillarTexture() {
@@ -472,6 +553,8 @@ const spriteGenerators = {    [T.GOLD]:     drawGold,
     [T.SPIDER]:   drawSpider,
     [T.GHOST]:    drawGhost,
     [T.PILLAR]:   drawPillar,
+    [T.KEY_RED]:  drawKeyRed,
+    [T.KEY_BLUE]: drawKeyBlue,
 };
 
 export function getSpriteTexture(entityType) {

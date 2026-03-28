@@ -1,6 +1,6 @@
 /* ── config.js ── game-wide constants ── */
 
-export const GAME_VERSION = '0.3.1';
+export const GAME_VERSION = '0.4.0';
 
 export const SCREEN_W = 640;
 export const SCREEN_H = 400;
@@ -63,10 +63,14 @@ export const T = {
     DOOR_RED:     25, // red locked door – requires red key
     DOOR_BLUE:    26, // blue locked door – requires blue key
     FLASHLIGHT:   27, // collectible lantern – gives the player the lighting cone
+    BARREL:       28, // explosive barrel – explodes on pickaxe hit or enemy contact
+    MINE_LIGHT:   29, // small mine lamp – emits ambient light
+    MINE_CART:    30, // decorative mine cart – blocks movement
+    PICKAXE_DECOR:31, // decorative leaning pickaxe
 };
 
 export const WALL_TYPES = new Set([T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.DOOR, T.DOOR_RED, T.DOOR_BLUE]);
-export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.EXIT, T.TORCH, T.HEALTH, T.SPIDER, T.GHOST, T.PILLAR, T.HEALTH_SMALL, T.KEY_RED, T.KEY_BLUE, T.FLASHLIGHT]);
+export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.EXIT, T.TORCH, T.HEALTH, T.SPIDER, T.GHOST, T.PILLAR, T.HEALTH_SMALL, T.KEY_RED, T.KEY_BLUE, T.FLASHLIGHT, T.BARREL, T.MINE_LIGHT, T.MINE_CART, T.PICKAXE_DECOR]);
 
 // Locked door helpers
 export const LOCKED_DOOR_TYPES = new Set([T.DOOR_RED, T.DOOR_BLUE]);
@@ -76,6 +80,10 @@ export const DOOR_KEY_MAP = { [T.DOOR_RED]: T.KEY_RED, [T.DOOR_BLUE]: T.KEY_BLUE
 // Breakable walls: tile → initial HP
 export const BREAKABLE_TYPES = new Set([T.WOOD]);
 export const WALL_HP = { [T.WOOD]: 3 };
+
+// Barrel explosion
+export const BARREL_EXPLOSION_RADIUS = 2.5;
+export const BARREL_EXPLOSION_DAMAGE = 30;
 
 // i18n keys for tile labels (resolved at runtime via t())
 export const TILE_LABEL_KEYS = {
@@ -104,6 +112,10 @@ export const TILE_LABEL_KEYS = {
     [T.DOOR_RED]:  'tDoorRed',
     [T.DOOR_BLUE]: 'tDoorBlue',
     [T.FLASHLIGHT]:'tFlashlight',
+    [T.BARREL]:       'tBarrel',
+    [T.MINE_LIGHT]:   'tMineLight',
+    [T.MINE_CART]:    'tMineCart',
+    [T.PICKAXE_DECOR]:'tPickaxeDecor',
 };
 
 export const TILE_COLORS = {
@@ -132,4 +144,8 @@ export const TILE_COLORS = {
     [T.DOOR_RED]: '#aa3333',
     [T.DOOR_BLUE]:'#3333aa',
     [T.FLASHLIGHT]:'#ffe080',
+    [T.BARREL]:       '#8B4513',
+    [T.MINE_LIGHT]:   '#ddaa33',
+    [T.MINE_CART]:    '#777777',
+    [T.PICKAXE_DECOR]:'#996633',
 };

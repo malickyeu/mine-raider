@@ -1,7 +1,7 @@
 /* ── sprites.js ── billboard sprite rendering ── */
 
 import { SCREEN_W, SCREEN_H, FOV, T } from './config.js';
-import { getSpriteTexture, getPillarTexture } from './textures.js';
+import { getSpriteTexture, getPillarTexture, getExplosionTexture } from './textures.js';
 
 /**
  * Render all visible entity sprites.
@@ -75,21 +75,26 @@ export function renderSprites(ctx, entities, player, depthBuffer, lightingState 
         for (const torch of nearbyTorches) {
             const tdx = wx - torch.x, tdy = wy - torch.y;
             const td2 = tdx * tdx + tdy * tdy;
-            if (td2 < torchRange * torchRange) {
+            const lr = torch.lightRadius || torchRange;
+            if (td2 < lr * lr) {
                 const td = Math.sqrt(td2);
                 const flicker = 0.7 + 0.3 *
                     Math.sin(torch.flickerPhase) *
                     Math.sin(torch.flickerPhase * 2.3 + 1.1);
-                const b = Math.pow(Math.max(0, 1 - td / torchRange), torchFalloff) * flicker * 0.9;
+                const b = Math.pow(Math.max(0, 1 - td / lr), torchFalloff) * flicker * 0.9;
                 torchBright = Math.max(torchBright, b);
             }
         }
         spriteFog = Math.max(0, spriteFog - torchBright);
 
         // Column clipping against depth buffer
-        const tex = ent.type === T.PILLAR ? getPillarTexture() : getSpriteTexture(ent.type);
-        // Pillars render at full wall height; other sprites are square
-        const spriteH2 = ent.type === T.PILLAR ? SCREEN_H / tx : spriteH;
+        const isExploding = ent.type === T.BARREL && ent.exploding;
+        const tex = isExploding ? getExplosionTexture()
+                  : ent.type === T.PILLAR ? getPillarTexture()
+                  : getSpriteTexture(ent.type);
+        // Pillars and mine carts render at full wall height; other sprites are square
+        const tallSprite = ent.type === T.PILLAR || ent.type === T.MINE_CART;
+        const spriteH2 = tallSprite ? SCREEN_H / tx : spriteH;
         const drawY2   = (SCREEN_H - spriteH2) / 2;
         const startCol = Math.max(0, Math.floor(drawX));
         const endCol = Math.min(SCREEN_W - 1, Math.floor(drawX + spriteW));

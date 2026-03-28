@@ -28,15 +28,18 @@ const TILE_ICONS = {
     [T.DOOR]:         '🚪', [T.KEY_RED]:      '🔑',
     [T.KEY_BLUE]:     '🔑', [T.DOOR_RED]:     '🔒',
     [T.DOOR_BLUE]:    '🔒', [T.FLASHLIGHT]:   '🔦',
+    [T.BARREL]:       '🧨', [T.MINE_LIGHT]:   '💡',
+    [T.MINE_CART]:    '🛒', [T.PICKAXE_DECOR]:'⛏️',
 };
 
 const TILE_GROUPS = [
     { key: 'edGroupEmpty',    tiles: [T.EMPTY] },
     { key: 'edGroupEnv',      tiles: [T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON,
                                        T.DOOR, T.DOOR_RED, T.DOOR_BLUE, T.PILLAR] },
-    { key: 'edGroupEquip',    tiles: [T.PLAYER, T.EXIT, T.TORCH] },
+    { key: 'edGroupEquip',    tiles: [T.PLAYER, T.EXIT, T.TORCH, T.MINE_LIGHT] },
     { key: 'edGroupCollect',  tiles: [T.GOLD, T.GEM, T.KEY_RED, T.KEY_BLUE,
                                        T.FLASHLIGHT, T.HEALTH, T.HEALTH_SMALL] },
+    { key: 'edGroupDecor',    tiles: [T.BARREL, T.MINE_CART, T.PICKAXE_DECOR] },
     { key: 'edGroupEnemies',  tiles: [T.BAT, T.SKELETON, T.SPIDER, T.GHOST] },
 ];
 
@@ -346,10 +349,10 @@ function buildGenTab() {
         const diff  = document.getElementById('gen-diff')?.value  || 'normal';
         const scale = Math.max(1, rooms / 8);
         const DS = {
-            easy:   { bats:1, skeletons:0, spiders:1, ghosts:0, gold:4, gems:2, health:3, torches:rooms },
-            normal: { bats:2, skeletons:1, spiders:2, ghosts:1, gold:3, gems:1, health:2, torches:Math.ceil(rooms*0.8) },
-            hard:   { bats:3, skeletons:2, spiders:3, ghosts:2, gold:2, gems:1, health:1, torches:Math.ceil(rooms*0.5) },
-        }[diff] ?? { bats:2, skeletons:1, spiders:2, ghosts:1, gold:3, gems:1, health:2, torches:Math.ceil(rooms*0.8) };
+            easy:   { bats:1, skeletons:0, spiders:1, ghosts:0, gold:4, gems:2, health:3, torches:rooms, barrels:2, mineLights:Math.ceil(rooms*0.6), mineCarts:2, pickaxes:2 },
+            normal: { bats:2, skeletons:1, spiders:2, ghosts:1, gold:3, gems:1, health:2, torches:Math.ceil(rooms*0.8), barrels:3, mineLights:Math.ceil(rooms*0.4), mineCarts:1, pickaxes:1 },
+            hard:   { bats:3, skeletons:2, spiders:3, ghosts:2, gold:2, gems:1, health:1, torches:Math.ceil(rooms*0.5), barrels:4, mineLights:Math.ceil(rooms*0.3), mineCarts:1, pickaxes:1 },
+        }[diff] ?? { bats:2, skeletons:1, spiders:2, ghosts:1, gold:3, gems:1, health:2, torches:Math.ceil(rooms*0.8), barrels:3, mineLights:Math.ceil(rooms*0.4), mineCarts:1, pickaxes:1 };
 
         const regularDoors = Math.max(2, Math.floor(rooms * 0.6));
         const lockedDoors  = diff === 'easy' ? 0 : 1;
@@ -365,6 +368,10 @@ function buildGenTab() {
             `<span>💎 ×${Math.max(1,Math.round(DS.gems*scale))}</span>` +
             `<span>❤️ ×${Math.max(1,Math.round(DS.health*scale))}</span>` +
             `<span>🔥 ×${Math.round(DS.torches)}</span>` +
+            `<span>🧨 ×${Math.max(1,Math.round(DS.barrels*scale))}</span>` +
+            `<span>💡 ×${Math.max(1,Math.round(DS.mineLights*scale))}</span>` +
+            `<span>🛒 ×${Math.min(4,Math.max(1,Math.round(DS.mineCarts*scale)))}</span>` +
+            `<span>⛏️ ×${Math.min(4,Math.max(1,Math.round(DS.pickaxes*scale)))}</span>` +
             `<span>🚪 ~${regularDoors}</span>` +
             (lockedDoors > 0 ? `<span>🔒 ×${lockedDoors}</span><span>🔑 ×${lockedDoors}</span>` : '') +
             `</div>`;

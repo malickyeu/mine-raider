@@ -340,10 +340,10 @@ export function generateMap({
     // Difficulty table (counts scale with number of rooms)
     const scale = Math.max(1, rooms.length / 8);
     const DS = {
-        easy:   { bats: 1, skeletons: 0, spiders: 1, ghosts: 0, gold: 4, gems: 2, health: 3, torches: rooms.length },
-        normal: { bats: 2, skeletons: 1, spiders: 2, ghosts: 1, gold: 3, gems: 1, health: 2, torches: Math.ceil(rooms.length * 0.8) },
-        hard:   { bats: 3, skeletons: 2, spiders: 3, ghosts: 2, gold: 2, gems: 1, health: 1, torches: Math.ceil(rooms.length * 0.5) },
-    }[difficulty] ?? { bats:2, skeletons:1, spiders:2, ghosts:1, gold:3, gems:1, health:2, torches: Math.ceil(rooms.length*0.8) };
+        easy:   { bats: 1, skeletons: 0, spiders: 1, ghosts: 0, gold: 4, gems: 2, health: 3, torches: rooms.length, barrels: 2, mineLights: Math.ceil(rooms.length * 0.6), mineCarts: 2, pickaxes: 2 },
+        normal: { bats: 2, skeletons: 1, spiders: 2, ghosts: 1, gold: 3, gems: 1, health: 2, torches: Math.ceil(rooms.length * 0.8), barrels: 3, mineLights: Math.ceil(rooms.length * 0.4), mineCarts: 1, pickaxes: 1 },
+        hard:   { bats: 3, skeletons: 2, spiders: 3, ghosts: 2, gold: 2, gems: 1, health: 1, torches: Math.ceil(rooms.length * 0.5), barrels: 4, mineLights: Math.ceil(rooms.length * 0.3), mineCarts: 1, pickaxes: 1 },
+    }[difficulty] ?? { bats:2, skeletons:1, spiders:2, ghosts:1, gold:3, gems:1, health:2, torches: Math.ceil(rooms.length*0.8), barrels:3, mineLights: Math.ceil(rooms.length*0.4), mineCarts:1, pickaxes:1 };
 
     // Helper: place N entities from a shuffled pool
     const placeEntities = (type, count, pool) => {
@@ -362,6 +362,10 @@ export function generateMap({
     placeEntities(T.HEALTH,   Math.max(1, Math.round(DS.health * scale)),           allEmpty);
     placeEntities(T.GOLD,     Math.max(2, Math.round(DS.gold    * scale)),          allEmpty);
     placeEntities(T.GEM,      Math.max(1, Math.round(DS.gems    * scale)),          allEmpty);
+    placeEntities(T.BARREL,   Math.max(1, Math.round(DS.barrels * scale)),          nonStartEmpty);
+    placeEntities(T.MINE_LIGHT, Math.max(1, Math.round(DS.mineLights * scale)),     allEmpty);
+    placeEntities(T.MINE_CART,  Math.min(4, Math.max(1, Math.round(DS.mineCarts * scale))),  nonStartEmpty);
+    placeEntities(T.PICKAXE_DECOR, Math.min(4, Math.max(1, Math.round(DS.pickaxes * scale))), allEmpty);
     placeEntities(T.BAT,      Math.max(0, Math.round(DS.bats    * scale)),          nonStartEmpty);
     placeEntities(T.SKELETON, Math.max(0, Math.round(DS.skeletons * scale)),        nonStartEmpty);
     placeEntities(T.SPIDER,   Math.max(0, Math.round(DS.spiders * scale)),          nonStartEmpty);

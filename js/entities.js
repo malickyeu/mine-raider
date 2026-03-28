@@ -154,6 +154,7 @@ export class Torch extends Entity {
     constructor(x, y) {
         super(T.TORCH, x, y);
         this.flickerPhase = Math.random() * Math.PI * 2;
+        this.lightRadius = 4.8;
     }
     update(dt) {
         this.flickerPhase += dt * 5;
@@ -299,6 +300,47 @@ export class Flashlight extends Entity {
     }
 }
 
+// ── Barrel ── explodes on pickaxe hit or enemy contact
+export class Barrel extends Entity {
+    constructor(x, y) {
+        super(T.BARREL, x, y);
+        this.exploding = false;
+        this.explodeTimer = 0;
+    }
+    update(dt) {
+        if (this.exploding) {
+            this.explodeTimer -= dt;
+            if (this.explodeTimer <= 0) this.alive = false;
+        }
+    }
+}
+
+// ── MineLight ── ambient light source (like torch but different visual)
+export class MineLight extends Entity {
+    constructor(x, y) {
+        super(T.MINE_LIGHT, x, y);
+        this.flickerPhase = Math.random() * Math.PI * 2;
+        this.lightRadius = 3.5;
+    }
+    update(dt) {
+        this.flickerPhase += dt * 3; // slower, steadier flicker than torch
+    }
+}
+
+// ── MineCart ── decorative, blocks movement
+export class MineCart extends Entity {
+    constructor(x, y) {
+        super(T.MINE_CART, x, y);
+    }
+}
+
+// ── PickaxeDecor ── decorative, walk-through
+export class PickaxeDecor extends Entity {
+    constructor(x, y) {
+        super(T.PICKAXE_DECOR, x, y);
+    }
+}
+
 /** Create entity instances from extracted entity list */
 export function createEntities(entityList, difficulty = null) {
     const entities = [];
@@ -335,6 +377,18 @@ export function createEntities(entityList, difficulty = null) {
                 break;
             case T.FLASHLIGHT:
                 entities.push(new Flashlight(e.x, e.y));
+                break;
+            case T.BARREL:
+                entities.push(new Barrel(e.x, e.y));
+                break;
+            case T.MINE_LIGHT:
+                entities.push(new MineLight(e.x, e.y));
+                break;
+            case T.MINE_CART:
+                entities.push(new MineCart(e.x, e.y));
+                break;
+            case T.PICKAXE_DECOR:
+                entities.push(new PickaxeDecor(e.x, e.y));
                 break;
         }
     }

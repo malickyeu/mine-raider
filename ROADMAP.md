@@ -1,7 +1,7 @@
 # ⛏️ Mine Raider – Roadmap
 
 > Živý dokument sledující plánované funkce a nápady pro další rozvoj hry.  
-> Poslední aktualizace: **2026-03-28** · verze **0.3.1** · 16 features (7 hotovo, 9 zbývá)
+> Poslední aktualizace: **2026-03-28** · verze **0.4.0** · 17 features (8 hotovo, 9 zbývá)
 
 ---
 
@@ -31,16 +31,14 @@
 - [x] **Redesign palety editoru** — skupiny dlaždic (Prostředí / Vybavení / Předměty / Nepřátelé), ikony místo textů, tooltip s názvem + popisem při najetí myší
 - [x] **Oprava logiky zamčených dveří v generátoru** — exit je vždy za zamčenou branou; klíč je ukrytý v nejodlehlejší třetině otevřené zóny (nikdy ve startovací místnosti); v uzamčené zóně jsou bonus poklady
 - [x] **Globální žebříček skóre** 🏆 — `highscore.js`, localStorage, per-difficulty best score na difficulty screen, rekordní zobrazení po výhře/prohře
+- [x] **Výbušné sudy** 💣 — `T.BARREL` entita, výbuch krumpáčem / kontaktem nepřítele, řetězové výbuchy, plošné poškození (hráč, nepřátelé, dřevo), exploze sprite, screen shake, SFX
+- [x] **Ambientní dekorace** ⛏️ — důlní světla (`T.MINE_LIGHT`, dynamické osvětlení radius 3.5), důlní vozíky (`T.MINE_CART`, blokují pohyb), opřené krumpáče (`T.PICKAXE_DECOR`); v editoru i generátoru
 
 ---
 
 ## 🔝 Plánované features
 
 
-### 3. 💣 Výbušné sudy
-- Nový sprite: **Barrel** — výbuch při trefu pickaxem nebo při průchodu nepřítelem
-- Výbuch poškodí vše v okruhu (hráč, nepřátelé, dřevěné zdi)
-- Řetězový výbuch pokud jsou sudy blízko sebe
 
 ### 4. 🪤 Pasti (traps)
 - **Spike Trap** – dlaždice na zemi, spustí se při přechodu (animovaný overlay na podlaze)
@@ -118,7 +116,7 @@ Sprint 1 ✅ (hotovo):
   → #6  High score (localStorage, per-difficulty best score)
 
 Sprint 2 (gameplay hloubka):
-  → #3  Výbušné sudy
+  → #3  Výbušné sudy ✅
   → #4  Pasti
 
 Sprint 3 (polishing & atmosféra):

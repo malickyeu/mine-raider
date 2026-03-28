@@ -1,12 +1,12 @@
 /* ── main.js ── game bootstrap, state machine, game loop ── */
 
-import { T, BREAKABLE_TYPES, WALL_HP, DIFFICULTIES, GAME_VERSION, ALL_DOOR_TYPES, LOCKED_DOOR_TYPES, DOOR_KEY_MAP } from './config.js';
+import { T, BREAKABLE_TYPES, WALL_HP, DIFFICULTIES, GAME_VERSION, ALL_DOOR_TYPES, LOCKED_DOOR_TYPES, DOOR_KEY_MAP, BARREL_EXPLOSION_RADIUS, BARREL_EXPLOSION_DAMAGE } from './config.js';
 import { loadMap, extractEntities, getCampaignLevel, getCampaignLength, isWall, getTile } from './map.js';
 import { initInput, releasePointer, isDown } from './input.js';
 import { initRenderer, renderFrame } from './renderer.js';
-import { Player, Enemy, Treasure, HealthPack, SmallHealthPack, Exit, Torch, Pillar, KeyItem, Flashlight, createEntities } from './entities.js';
+import { Player, Enemy, Treasure, HealthPack, SmallHealthPack, Exit, Torch, Pillar, KeyItem, Flashlight, Barrel, MineLight, MineCart, createEntities } from './entities.js';
 import { initEditor, showEditor, rebuildEditorUI } from './editor.js';
-import { sfxPickup, sfxGem, sfxAttack, sfxDeath, sfxWin, sfxHeal, sfxEnemyDeath, sfxHitWood, sfxBreakWood, sfxDoorOpen, sfxDoorLocked, sfxKeyPickup, sfxFlashlightPickup } from './audio.js';
+import { sfxPickup, sfxGem, sfxAttack, sfxDeath, sfxWin, sfxHeal, sfxEnemyDeath, sfxHitWood, sfxBreakWood, sfxDoorOpen, sfxDoorLocked, sfxKeyPickup, sfxFlashlightPickup, sfxExplosion } from './audio.js';
 import { toggleMinimap, toggleHelp, isHelpVisible, hideHelp } from './hud.js';
 import { t, toggleLang } from './i18n.js';
 import { getHighScore, submitScore, getBestCampaignScore } from './highscore.js';
@@ -321,6 +321,79 @@ function isEntityInTile(tx, ty) {
     return false;
 }
 
+function triggerBarrelExplosion(barrel, processedBarrels = new Set()) {
+    if (processedBarrels.has(barrel) || barrel.exploding) return;
+    processedBarrels.add(barrel);
+    barrel.exploding = true;
+    barrel.explodeTimer = 0.3;
+
+    const RADIUS = BARREL_EXPLOSION_RADIUS;
+    const DAMAGE = BARREL_EXPLOSION_DAMAGE;
+
+    sfxExplosion();
+
+    // Screen shake proportional to proximity
+    const pdx = player.x - barrel.x, pdy = player.y - barrel.y;
+    const pdist = Math.sqrt(pdx * pdx + pdy * pdy);
+    const shakeAmount = Math.max(0.15, 0.5 * Math.max(0, 1 - pdist / (RADIUS * 2)));
+    player.shakeTimer = Math.max(player.shakeTimer, shakeAmount);
+
+    // Damage player
+    if (pdist < RADIUS) {
+        const dmg = Math.round(DAMAGE * (1 - pdist / RADIUS));
+        player.takeDamage(dmg);
+    }
+
+    // Damage enemies
+    for (const ent of entities) {
+        if (!(ent instanceof Enemy) || !ent.alive) continue;
+        const edx = ent.x - barrel.x, edy = ent.y - barrel.y;
+        const edist = Math.sqrt(edx * edx + edy * edy);
+        if (edist < RADIUS) {
+            ent.takeDamage();
+            if (!ent.alive) {
+                sfxEnemyDeath();
+                player.addScore(getEnemyScore(ent.type));
+            }
+        }
+    }
+
+    // Break wood walls in radius
+    const minTX = Math.max(0, Math.floor(barrel.x - RADIUS));
+    const maxTX = Math.min(mapData.width - 1, Math.ceil(barrel.x + RADIUS));
+    const minTY = Math.max(0, Math.floor(barrel.y - RADIUS));
+    const maxTY = Math.min(mapData.height - 1, Math.ceil(barrel.y + RADIUS));
+    for (let ty = minTY; ty <= maxTY; ty++) {
+        for (let tx = minTX; tx <= maxTX; tx++) {
+            const tile = mapData.tiles[ty][tx];
+            if (!BREAKABLE_TYPES.has(tile)) continue;
+            const wdx = (tx + 0.5) - barrel.x, wdy = (ty + 0.5) - barrel.y;
+            if (Math.sqrt(wdx * wdx + wdy * wdy) >= RADIUS) continue;
+            // Don't break wood adjacent to doors
+            const adjDoor = ALL_DOOR_TYPES.has(getTile(mapData, tx - 1, ty)) ||
+                            ALL_DOOR_TYPES.has(getTile(mapData, tx + 1, ty)) ||
+                            ALL_DOOR_TYPES.has(getTile(mapData, tx, ty - 1)) ||
+                            ALL_DOOR_TYPES.has(getTile(mapData, tx, ty + 1));
+            if (adjDoor) continue;
+            mapData.tiles[ty][tx] = T.EMPTY;
+            delete breakableWalls[`${tx},${ty}`];
+            sfxBreakWood();
+        }
+    }
+
+    // Chain explosions to nearby barrels
+    for (const ent of entities) {
+        if (!(ent instanceof Barrel) || !ent.alive || ent.exploding) continue;
+        if (processedBarrels.has(ent)) continue;
+        const bdx = ent.x - barrel.x, bdy = ent.y - barrel.y;
+        if (Math.sqrt(bdx * bdx + bdy * bdy) < RADIUS) {
+            triggerBarrelExplosion(ent, processedBarrels);
+        }
+    }
+
+    player.addScore(25);
+}
+
 function gameLoop(now) {
     if (state !== 'game') return;
     const dt = Math.min(0.05, (now - lastTime) / 1000);
@@ -411,9 +484,13 @@ function gameLoop(now) {
             }
         }
 
-        // ── Pillar collision (push player out) ──
+        // ── Blocking entity collision (pillars, barrels, mine carts) ──
         for (const ent of entities) {
-            if (!(ent instanceof Pillar) || !ent.alive) continue;
+            if (!ent.alive) continue;
+            const isBlocking = ent instanceof Pillar ||
+                               (ent instanceof Barrel && !ent.exploding) ||
+                               ent instanceof MineCart;
+            if (!isBlocking) continue;
             const dx = player.x - ent.x;
             const dy = player.y - ent.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
@@ -429,19 +506,26 @@ function gameLoop(now) {
             const cosA = Math.cos(player.angle);
             const sinA = Math.sin(player.angle);
 
-            // ── Hit enemies ──
+            // ── Hit enemies & barrels ──
             for (const ent of entities) {
-                if (!(ent instanceof Enemy) || !ent.alive) continue;
+                if (!ent.alive) continue;
+                const isEnemy = ent instanceof Enemy;
+                const isBarrel = ent instanceof Barrel && !ent.exploding;
+                if (!isEnemy && !isBarrel) continue;
                 const dx = ent.x - player.x;
                 const dy = ent.y - player.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist > 2.0) continue;
                 const dot = (dx * cosA + dy * sinA) / dist;
                 if (dot > 0.7) {
-                    ent.takeDamage();
-                    if (!ent.alive) {
-                        sfxEnemyDeath();
-                        player.addScore(getEnemyScore(ent.type));
+                    if (isBarrel) {
+                        triggerBarrelExplosion(ent);
+                    } else {
+                        ent.takeDamage();
+                        if (!ent.alive) {
+                            sfxEnemyDeath();
+                            player.addScore(getEnemyScore(ent.type));
+                        }
                     }
                 }
             }
@@ -481,6 +565,21 @@ function gameLoop(now) {
             if (ent instanceof Enemy) ent.update(dt, mapData, player);
             else if (ent instanceof Torch) ent.update(dt);
             else if (ent instanceof Flashlight) ent.update(dt);
+            else if (ent instanceof Barrel) ent.update(dt);
+            else if (ent instanceof MineLight) ent.update(dt);
+        }
+
+        // ── Enemy-barrel proximity → explosion ──
+        for (const barrel of entities) {
+            if (!(barrel instanceof Barrel) || !barrel.alive || barrel.exploding) continue;
+            for (const enemy of entities) {
+                if (!(enemy instanceof Enemy) || !enemy.alive) continue;
+                const edx = enemy.x - barrel.x, edy = enemy.y - barrel.y;
+                if (Math.sqrt(edx * edx + edy * edy) < 0.6) {
+                    triggerBarrelExplosion(barrel);
+                    break;
+                }
+            }
         }
 
         for (const ent of entities) {

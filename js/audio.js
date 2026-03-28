@@ -102,3 +102,13 @@ export function sfxFlashlightPickup() {
     setTimeout(() => playTone(500, 0.10, 'sine', 0.10), 160);
     setTimeout(() => playTone(800, 0.20, 'sine', 0.08), 240);
 }
+
+export function sfxExplosion() {
+    // deep boom + rumble + debris
+    playTone(60, 0.4, 'sawtooth', 0.18);
+    playTone(45, 0.5, 'sine', 0.15);
+    setTimeout(() => playTone(80, 0.25, 'sawtooth', 0.14), 50);
+    setTimeout(() => playTone(120, 0.15, 'square', 0.10), 100);
+    setTimeout(() => playTone(40, 0.35, 'sine', 0.08), 200);
+}
+

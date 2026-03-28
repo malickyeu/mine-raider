@@ -22,10 +22,10 @@ export function initRenderer(canvasEl) {
 }
 
 export function renderFrame(mapData, player, entities, levelInfo, breakableWalls = {}, doorStates = {}) {
-    // ── Pre-filter nearby torches for lighting ──
+    // ── Pre-filter nearby light sources (torches + mine lights) ──
     const TR2 = (TORCH_RANGE + 2) * (TORCH_RANGE + 2);
     const nearbyTorches = entities.filter(e => {
-        if (!e.alive || e.type !== T.TORCH) return false;
+        if (!e.alive || !e.lightRadius) return false;
         const dx = e.x - player.x, dy = e.y - player.y;
         return dx * dx + dy * dy < TR2;
     });
@@ -35,9 +35,10 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
     for (const torch of nearbyTorches) {
         const dx = torch.x - player.x, dy = torch.y - player.y;
         const d = Math.sqrt(dx * dx + dy * dy);
-        if (d < TORCH_RANGE) {
+        const lr = torch.lightRadius || TORCH_RANGE;
+        if (d < lr) {
             const flicker = 0.7 + 0.3 * Math.sin(torch.flickerPhase) * Math.sin(torch.flickerPhase * 2.3 + 1.1);
-            const b = Math.pow(Math.max(0, 1 - d / TORCH_RANGE), TORCH_FALLOFF) * flicker;
+            const b = Math.pow(Math.max(0, 1 - d / lr), TORCH_FALLOFF) * flicker;
             closestTorchBrightness = Math.max(closestTorchBrightness, b);
         }
     }
@@ -150,12 +151,13 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
             const tdx = hitX - torch.x;
             const tdy = hitY - torch.y;
             const td2 = tdx * tdx + tdy * tdy;
-            if (td2 < TORCH_RANGE * TORCH_RANGE) {
+            const lr = torch.lightRadius || TORCH_RANGE;
+            if (td2 < lr * lr) {
                 const td = Math.sqrt(td2);
                 const flicker = 0.7 + 0.3 *
                     Math.sin(torch.flickerPhase) *
                     Math.sin(torch.flickerPhase * 2.3 + 1.1);
-                const b = Math.pow(Math.max(0, 1 - td / TORCH_RANGE), TORCH_FALLOFF) * flicker * 0.9;
+                const b = Math.pow(Math.max(0, 1 - td / lr), TORCH_FALLOFF) * flicker * 0.9;
                 torchBrightness = Math.max(torchBrightness, b);
             }
         }

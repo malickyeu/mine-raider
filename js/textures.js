@@ -575,6 +575,253 @@ function drawFlashlight() {
     return c;
 }
 
+function drawBarrel() {
+    const c = createCanvas(32, 32);
+    const ctx = c.getContext('2d');
+    // ── Compact barrel sitting on ground ──
+    // Barrel occupies bottom ~45% of texture (realistic height ~1m)
+    const bTop = 17, bBot = 31, bMid = (bTop + bBot) / 2;
+    const wTop = 7, wMid = 9, wBot = 7; // half-widths (bulge in center)
+    // Barrel silhouette with slight bulge
+    ctx.fillStyle = '#7a4a22';
+    ctx.beginPath();
+    ctx.moveTo(16 - wTop, bTop);
+    ctx.quadraticCurveTo(16 - wMid - 1, bMid, 16 - wBot, bBot);
+    ctx.lineTo(16 + wBot, bBot);
+    ctx.quadraticCurveTo(16 + wMid + 1, bMid, 16 + wTop, bTop);
+    ctx.closePath();
+    ctx.fill();
+    // Vertical stave lines
+    ctx.strokeStyle = 'rgba(40,20,5,0.35)';
+    ctx.lineWidth = 0.7;
+    for (let sx = -5; sx <= 5; sx += 2.5) {
+        ctx.beginPath();
+        ctx.moveTo(16 + sx * 0.85, bTop + 1);
+        ctx.quadraticCurveTo(16 + sx * 1.1, bMid, 16 + sx * 0.85, bBot - 1);
+        ctx.stroke();
+    }
+    // Light side highlight
+    ctx.fillStyle = 'rgba(160,110,50,0.22)';
+    ctx.fillRect(9, bTop + 1, 2, bBot - bTop - 2);
+    // Metal bands (3 hoops)
+    const bands = [bTop + 2, bMid, bBot - 2];
+    for (const by of bands) {
+        ctx.fillStyle = '#666';
+        ctx.fillRect(16 - wMid, by, wMid * 2, 1.5);
+        ctx.fillStyle = 'rgba(200,200,210,0.3)';
+        ctx.fillRect(16 - wMid, by, wMid * 2, 0.7);
+    }
+    // Top cap
+    ctx.fillStyle = '#8a5a28';
+    ctx.beginPath(); ctx.ellipse(16, bTop, wTop, 2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(40,20,5,0.4)';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.ellipse(16, bTop, wTop, 2, 0, 0, Math.PI * 2); ctx.stroke();
+    // TNT marking
+    ctx.fillStyle = '#cc2222';
+    ctx.font = 'bold 6px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('TNT', 16, bMid + 1);
+    // Fuse
+    ctx.strokeStyle = '#444';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(16, bTop - 1);
+    ctx.quadraticCurveTo(18, bTop - 4, 20, bTop - 3);
+    ctx.stroke();
+    // Spark
+    ctx.fillStyle = '#ffcc00';
+    ctx.beginPath(); ctx.arc(20, bTop - 3, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,200,50,0.45)';
+    ctx.beginPath(); ctx.arc(20, bTop - 3, 2.5, 0, Math.PI * 2); ctx.fill();
+    return c;
+}
+
+function drawMineLight() {
+    const c = createCanvas(32, 32);
+    const ctx = c.getContext('2d');
+    // Glow halo
+    const halo = ctx.createRadialGradient(16, 14, 2, 16, 14, 12);
+    halo.addColorStop(0, 'rgba(255,220,100,0.5)');
+    halo.addColorStop(0.6, 'rgba(255,180,40,0.2)');
+    halo.addColorStop(1, 'rgba(200,120,0,0)');
+    ctx.fillStyle = halo;
+    ctx.fillRect(0, 0, 32, 32);
+    // Mounting bracket (metal)
+    ctx.fillStyle = '#666';
+    ctx.fillRect(14, 2, 4, 4);
+    // Wire / chain
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(16, 6); ctx.lineTo(16, 9); ctx.stroke();
+    // Lamp housing (small cage)
+    ctx.fillStyle = '#777';
+    ctx.fillRect(11, 9, 10, 2);   // top plate
+    ctx.fillRect(11, 21, 10, 2);  // bottom plate
+    ctx.fillRect(11, 9, 1, 14);   // left bar
+    ctx.fillRect(20, 9, 1, 14);   // right bar
+    // Glass / light
+    ctx.fillStyle = 'rgba(255,230,120,0.8)';
+    ctx.fillRect(12, 11, 8, 10);
+    // Inner filament glow
+    const glow = ctx.createRadialGradient(16, 15, 1, 16, 16, 4);
+    glow.addColorStop(0, 'rgba(255,255,200,1)');
+    glow.addColorStop(0.5, 'rgba(255,200,60,0.7)');
+    glow.addColorStop(1, 'rgba(255,150,20,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.ellipse(16, 16, 3, 4, 0, 0, Math.PI * 2); ctx.fill();
+    return c;
+}
+
+function drawMineCart() {
+    const c = createCanvas(32, 32);
+    const ctx = c.getContext('2d');
+    // ── Mine cart on rails, everything in bottom ~55% of texture ──
+    // Rails at very bottom
+    ctx.fillStyle = '#5a5a5a';
+    ctx.fillRect(2, 31, 28, 1);
+    // Rail ties
+    ctx.fillStyle = '#4a3a28';
+    ctx.fillRect(5, 30, 3, 2);
+    ctx.fillRect(14, 30, 3, 2);
+    ctx.fillRect(23, 30, 3, 2);
+    // Wheels (on rails)
+    ctx.fillStyle = '#5a5a5a';
+    ctx.beginPath(); ctx.arc(9, 29, 2.8, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(23, 29, 2.8, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#777';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.arc(9, 29, 2.8, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(23, 29, 2.8, 0, Math.PI * 2); ctx.stroke();
+    // Wheel hubs
+    ctx.fillStyle = '#888';
+    ctx.beginPath(); ctx.arc(9, 29, 1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(23, 29, 1, 0, Math.PI * 2); ctx.fill();
+    // Axle
+    ctx.fillStyle = '#555';
+    ctx.fillRect(9, 28.5, 14, 1.2);
+    // Cart body (trapezoidal bucket)
+    ctx.fillStyle = '#7a6a58';
+    ctx.beginPath();
+    ctx.moveTo(4, 26);
+    ctx.lineTo(7, 15);
+    ctx.lineTo(25, 15);
+    ctx.lineTo(28, 26);
+    ctx.closePath();
+    ctx.fill();
+    // Side plank lines
+    ctx.strokeStyle = 'rgba(40,30,18,0.4)';
+    ctx.lineWidth = 0.7;
+    for (let y = 17; y <= 25; y += 2.5) {
+        const t = (y - 15) / 11;
+        const inL = 7 - t * 3;
+        const inR = 25 + t * 3;
+        ctx.beginPath(); ctx.moveTo(inL, y); ctx.lineTo(inR, y); ctx.stroke();
+    }
+    // Metal rim
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(4, 26); ctx.lineTo(7, 15); ctx.lineTo(25, 15); ctx.lineTo(28, 26); ctx.closePath();
+    ctx.stroke();
+    // Corner rivets
+    ctx.fillStyle = '#aaa';
+    ctx.beginPath(); ctx.arc(7, 15, 1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(25, 15, 1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(5, 25, 1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(27, 25, 1, 0, Math.PI * 2); ctx.fill();
+    // Ore / rocks inside
+    ctx.fillStyle = '#5a5040';
+    ctx.beginPath(); ctx.ellipse(16, 16, 7, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+    // Individual rocks
+    const rocks = [[11,15,2,'#6a6048'],[17,14.5,1.8,'#7a704a'],[14,17,1.5,'#555038'],[21,16,1.3,'#686050']];
+    for (const [rx,ry,rr,rc] of rocks) {
+        ctx.fillStyle = rc;
+        ctx.beginPath(); ctx.arc(rx, ry, rr, 0, Math.PI * 2); ctx.fill();
+    }
+    // Gold vein
+    ctx.fillStyle = 'rgba(200,180,60,0.5)';
+    ctx.beginPath(); ctx.arc(12, 14.5, 1, 0, Math.PI * 2); ctx.fill();
+    return c;
+}
+
+function drawPickaxeDecor() {
+    const c = createCanvas(32, 32);
+    const ctx = c.getContext('2d');
+    // ── Pickaxe leaning slightly against wall, bottom ~60% of texture ──
+    // Ground shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(16, 31, 4, 1, 0, 0, Math.PI * 2); ctx.fill();
+    // Handle — nearly vertical, very slight lean
+    ctx.strokeStyle = '#6e4420';
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(17, 31); ctx.lineTo(15, 13); ctx.stroke();
+    // Handle highlight
+    ctx.strokeStyle = 'rgba(160,115,55,0.35)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(16, 31); ctx.lineTo(14, 13); ctx.stroke();
+    // ── Pick head — thick bar across the top ──
+    // Dark iron head shape (curved pick on right, flat adze on left)
+    ctx.fillStyle = '#6e6e74';
+    ctx.beginPath();
+    // Right side: curved pick spike
+    ctx.moveTo(15, 14);          // center/handle junction
+    ctx.lineTo(27, 11);          // tip of pick
+    ctx.lineTo(28, 13);          // underside of pick tip
+    ctx.lineTo(15, 15);          // back to center bottom
+    ctx.closePath();
+    ctx.fill();
+    // Left side: flat adze/chisel
+    ctx.fillStyle = '#636368';
+    ctx.beginPath();
+    ctx.moveTo(15, 14);
+    ctx.lineTo(4, 12);           // blunt end
+    ctx.lineTo(3, 14);           // bottom edge
+    ctx.lineTo(15, 15);
+    ctx.closePath();
+    ctx.fill();
+    // Metal shine along top edge of pick
+    ctx.strokeStyle = 'rgba(190,190,200,0.5)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(5, 12.5); ctx.lineTo(27, 11.5); ctx.stroke();
+    // Dark underside edge
+    ctx.strokeStyle = 'rgba(30,30,35,0.4)';
+    ctx.lineWidth = 0.7;
+    ctx.beginPath(); ctx.moveTo(4, 14); ctx.lineTo(28, 13); ctx.stroke();
+    // Binding collar (where head meets handle)
+    ctx.fillStyle = '#555';
+    ctx.fillRect(13, 12, 5, 4);
+    ctx.fillStyle = '#777';
+    ctx.fillRect(14, 12.5, 3, 3);
+    return c;
+}
+
+function drawExplosion() {
+    const c = createCanvas(32, 32);
+    const ctx = c.getContext('2d');
+    // Explosion flash
+    const grad = ctx.createRadialGradient(16, 16, 1, 16, 16, 15);
+    grad.addColorStop(0, '#ffffee');
+    grad.addColorStop(0.2, '#ffcc33');
+    grad.addColorStop(0.5, '#ff6600');
+    grad.addColorStop(0.8, '#cc2200');
+    grad.addColorStop(1, 'rgba(80,10,0,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(16, 16, 15, 0, Math.PI * 2); ctx.fill();
+    // Sparks
+    ctx.fillStyle = '#ffee66';
+    for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        const r = 8 + Math.random() * 5;
+        ctx.beginPath();
+        ctx.arc(16 + Math.cos(a) * r, 16 + Math.sin(a) * r, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    return c;
+}
+
 // Pillar needs its own cache so alpha is preserved
 const pillarCache = {};
 export function getPillarTexture() {
@@ -596,6 +843,10 @@ const spriteGenerators = {    [T.GOLD]:     drawGold,
     [T.KEY_RED]:  drawKeyRed,
     [T.KEY_BLUE]: drawKeyBlue,
     [T.FLASHLIGHT]: drawFlashlight,
+    [T.BARREL]:       drawBarrel,
+    [T.MINE_LIGHT]:   drawMineLight,
+    [T.MINE_CART]:    drawMineCart,
+    [T.PICKAXE_DECOR]:drawPickaxeDecor,
 };
 
 export function getSpriteTexture(entityType) {
@@ -605,3 +856,9 @@ export function getSpriteTexture(entityType) {
     }
     return spriteCache[entityType];
 }
+
+export function getExplosionTexture() {
+    if (!spriteCache['_explosion']) spriteCache['_explosion'] = drawExplosion();
+    return spriteCache['_explosion'];
+}
+

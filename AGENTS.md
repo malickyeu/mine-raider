@@ -16,14 +16,14 @@ No build step. Changes to `js/` or `index.html` take effect on browser reload. T
 | File | Responsibility |
 |---|---|
 | `js/config.js` | All constants + the `T` tile-type enum + `WALL_TYPES` / `ENTITY_TYPES` sets |
-| `js/main.js` | State machine (`menu` → `game` → `editor`), game loop, breakable-wall HP tracking |
+| `js/main.js` | State machine (`menu` → `game` → `editor`), game loop, breakable-wall HP tracking, barrel explosions |
 | `js/map.js` | Campaign level definitions (inline 2-D tile arrays), localStorage save/load |
 | `js/mapgen.js` | Procedural level generator; BFS connectivity guarantee |
 | `js/raycaster.js` | DDA ray-marching; returns `depthBuffer[]` + calls `drawColumn` callback |
-| `js/renderer.js` | Orchestrates ceiling/floor/walls/sprites/HUD per frame |
+| `js/renderer.js` | Orchestrates ceiling/floor/walls/sprites/HUD per frame; dynamic lighting from torches + mine lights |
 | `js/textures.js` | Generates all wall & sprite textures on `<canvas>` (no image files) |
 | `js/sprites.js` | Billboard sprite rendering; clips against `depthBuffer` from raycaster |
-| `js/entities.js` | `Player`, `Enemy` subclasses (`Bat`, `Spider`, `Skeleton`, `Ghost`), collectibles |
+| `js/entities.js` | `Player`, `Enemy` subclasses (`Bat`, `Spider`, `Skeleton`, `Ghost`), collectibles, decorations (`Barrel`, `MineLight`, `MineCart`, `PickaxeDecor`) |
 | `js/collision.js` | AABB slide collision; axes tested independently to allow wall-sliding |
 | `js/audio.js` | Web Audio oscillator SFX; no audio files |
 | `js/hud.js` | Health bar, score, minimap, help overlay toggle |
@@ -36,14 +36,14 @@ No build step. Changes to `js/` or `index.html` take effect on browser reload. T
 ### Tile Type System (`config.js`)
 Every tile (walls, entities, collectibles) is a number defined in the `T` object:
 ```js
-export const T = { EMPTY: 0, STONE: 1, WOOD: 2, ..., GHOST: 19, PILLAR: 20, HEALTH_SMALL: 21, DOOR: 22, KEY_RED: 23, KEY_BLUE: 24, DOOR_RED: 25, DOOR_BLUE: 26 };
+export const T = { EMPTY: 0, STONE: 1, WOOD: 2, ..., GHOST: 19, PILLAR: 20, HEALTH_SMALL: 21, DOOR: 22, KEY_RED: 23, KEY_BLUE: 24, DOOR_RED: 25, DOOR_BLUE: 26, FLASHLIGHT: 27, BARREL: 28, MINE_LIGHT: 29, MINE_CART: 30, PICKAXE_DECOR: 31 };
 export const WALL_TYPES   = new Set([T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.DOOR, T.DOOR_RED, T.DOOR_BLUE]);
-export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, ..., T.KEY_RED, T.KEY_BLUE]);
+export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, ..., T.KEY_RED, T.KEY_BLUE, T.FLASHLIGHT, T.BARREL, T.MINE_LIGHT, T.MINE_CART, T.PICKAXE_DECOR]);
 export const LOCKED_DOOR_TYPES = new Set([T.DOOR_RED, T.DOOR_BLUE]);
 export const ALL_DOOR_TYPES    = new Set([T.DOOR, T.DOOR_RED, T.DOOR_BLUE]);
 export const DOOR_KEY_MAP      = { [T.DOOR_RED]: T.KEY_RED, [T.DOOR_BLUE]: T.KEY_BLUE };
 ```
-**Adding a new tile type** requires updates in: `T`, the appropriate Set (`WALL_TYPES` or `ENTITY_TYPES`), `TILE_COLORS`, `TILE_LABEL_KEYS`, and a texture generator in `textures.js`.
+**Adding a new tile type** requires updates in: `T`, the appropriate Set (`WALL_TYPES` or `ENTITY_TYPES`), `TILE_COLORS`, `TILE_LABEL_KEYS`, a texture generator in `textures.js`, i18n keys in `i18n.js` (both languages), and an editor icon + group in `editor.js`.
 
 ### Procedural Textures (`textures.js`)
 Each wall/sprite type has a dedicated `genXxx()` function that draws onto an off-screen `<canvas>` using Canvas 2D API. Results are cached by tile type. To add a new wall texture: write `genXxx()` and register it in `getTexture(tileType)`.
@@ -91,6 +91,25 @@ Two colored locked door types (`T.DOOR_RED`, `T.DOOR_BLUE`) and matching key ent
 ### Ghost Special Behavior (`entities.js`)
 `Ghost` bypasses `isWall()` checks during movement — the only entity that ignores wall collisions. Handle this explicitly when touching enemy pathfinding.
 
+### Explosive Barrels (`main.js`, `entities.js`)
+`Barrel` entity (`T.BARREL`) — explodes on pickaxe hit OR when an enemy walks into it (dist < 0.6):
+- **Chain explosions**: barrels within `BARREL_EXPLOSION_RADIUS` (2.5) of an exploding barrel also detonate
+- **Area damage**: damages player & enemies within radius; breaks wood walls (unless adjacent to doors)
+- **Collision**: blocks movement like pillars; `ent.exploding` barrels become walk-through
+- `triggerBarrelExplosion()` in `main.js` is the recursive entry point; uses `processedBarrels` Set to prevent infinite loops
+- Barrel briefly stays alive in `exploding` state (0.3 s) for explosion sprite rendering
+
+### Light-Emitting Entities (`renderer.js`, `sprites.js`)
+Both `Torch` and `MineLight` entities have a `lightRadius` property and `flickerPhase`:
+- Torch: `lightRadius = 4.8`, fast flicker
+- MineLight: `lightRadius = 3.5`, slower/steadier flicker
+- The renderer filters nearby light sources via `e.lightRadius > 0` (not by tile type), then uses each entity's `lightRadius` for per-surface and per-sprite brightness calculations
+
+### Decorative Entities
+- **MineCart** (`T.MINE_CART`): blocks movement (collision handled alongside `Pillar`)
+- **PickaxeDecor** (`T.PICKAXE_DECOR`): walk-through decoration, no interaction
+- Both are rendered as billboard sprites; mine cart renders at full wall height
+
 ### i18n (`i18n.js`)
 All UI strings go through `t(key)`. Some values are functions:
 ```js
@@ -102,8 +121,8 @@ Language persisted under `localStorage` key `mine_raider_lang`; map saved under 
 `renderer.js → renderFrame()`:
 1. Apply head bob + screen shake via `ctx.translate()`
 2. Draw ceiling & floor flat fills + depth gradients
-3. `castRays(mapData, ..., doorStates)` → calls `drawColumn` for each screen column (wall textures + thin-door rendering + fog + crack overlay)
-4. `renderSprites()` — billboard sprites depth-clipped against `depthBuffer`
+3. `castRays(mapData, ..., doorStates)` → calls `drawColumn` for each screen column (wall textures + thin-door rendering + fog + crack overlay + dynamic torch/mine-light illumination)
+4. `renderSprites()` — billboard sprites depth-clipped against `depthBuffer`; exploding barrels use explosion texture
 5. `ctx.restore()` — remove bob/shake offset
 6. `drawHUD()` — health bar, score, minimap (with door state lines), level name
 
@@ -111,4 +130,3 @@ Language persisted under `localStorage` key `mine_raider_lang`; map saved under 
 - **No bundler / no transpilation** — all files use native ES module `import/export`; must run through the Express server (not `file://`)
 - **No external assets** — do not add image or audio files; extend `textures.js` / `audio.js` instead
 - **Screen resolution is fixed** at `640×400` (`SCREEN_W` / `SCREEN_H` in `config.js`)
-

@@ -34,6 +34,7 @@ const translations = {
             'SPACE — Útok krumpáčem',
             'F — Otevřít dveře (zamčené vyžadují klíč)',
             'SPACE u dřevěné zdi — Prolomit (3 rány)',
+            'SPACE u sudu — Výbuch! (pozor na řetězové exploze)',
             'M — Skrýt / zobrazit mapu',
             'H — Nápověda',
             'L — Přepnout lucernu (zapnout / vypnout)',
@@ -127,12 +128,17 @@ const translations = {
         tDoorRed:  'Červené dveře',
         tDoorBlue: 'Modré dveře',
         tFlashlight: 'Lucerna',
+        tBarrel:       'Výbušný sud',
+        tMineLight:    'Důlní světlo',
+        tMineCart:     'Důlní vozík',
+        tPickaxeDecor: 'Krumpáč',
 
         // Editor tile-group labels
         edGroupEmpty:   'Prázdno',
         edGroupEnv:     'Prostředí',
         edGroupEquip:   'Vybavení',
         edGroupCollect: 'Předměty',
+        edGroupDecor:   'Dekorace',
         edGroupEnemies: 'Nepřátelé',
 
         // Tile descriptions (editor tooltip)
@@ -161,6 +167,10 @@ const translations = {
         tDescSkeleton:    'Kostlivec — středně silný nepřítel',
         tDescSpider:      'Pavouk — středně silný nepřítel',
         tDescGhost:       'Duch — prochází zdmi, silný nepřítel',
+        tDescBarrel:      'Výbušný sud — vybuchne při úderu nebo kontaktu s nepřítelem',
+        tDescMineLight:   'Důlní světlo — osvětluje okolí slabším světlem',
+        tDescMineCart:    'Důlní vozík — dekorace, blokuje pohyb',
+        tDescPickaxeDecor:'Opřený krumpáč — dekorace',
 
         // High score
         bestScore:  'Nejlepší',
@@ -196,6 +206,7 @@ const translations = {
             'SPACE — Pickaxe attack',
             'F — Open door (locked doors need a key)',
             'SPACE at wood wall — Break wall (3 hits)',
+            'SPACE at barrel — Explode! (watch out for chain reactions)',
             'M — Toggle minimap',
             'H — Help',
             'L — Toggle lantern (on / off)',
@@ -279,12 +290,17 @@ const translations = {
         tDoorRed:  'Red Door',
         tDoorBlue: 'Blue Door',
         tFlashlight: 'Lantern',
+        tBarrel:       'Explosive Barrel',
+        tMineLight:    'Mine Light',
+        tMineCart:     'Mine Cart',
+        tPickaxeDecor: 'Pickaxe',
 
         // Editor tile-group labels
         edGroupEmpty:   'Empty',
         edGroupEnv:     'Environment',
         edGroupEquip:   'Equipment',
         edGroupCollect: 'Items',
+        edGroupDecor:   'Decorations',
         edGroupEnemies: 'Enemies',
 
         // Tile descriptions (editor tooltip)
@@ -313,6 +329,10 @@ const translations = {
         tDescSkeleton:    'Skeleton — moderate enemy',
         tDescSpider:      'Spider — moderate enemy',
         tDescGhost:       'Ghost — passes through walls, strong',
+        tDescBarrel:      'Explosive barrel — detonates on hit or enemy contact',
+        tDescMineLight:   'Mine light — provides dimmer ambient lighting',
+        tDescMineCart:    'Mine cart — decoration, blocks movement',
+        tDescPickaxeDecor:'Leaning pickaxe — decoration',
 
         // High score
         bestScore:  'Best',

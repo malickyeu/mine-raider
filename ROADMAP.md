@@ -1,7 +1,7 @@
 # ⛏️ Mine Raider – Roadmap
 
 > Živý dokument sledující plánované funkce a nápady pro další rozvoj hry.  
-> Poslední aktualizace: **2026-03-28** · verze **0.2.0** · 16 features (4 hotovo, 12 zbývá)
+> Poslední aktualizace: **2026-03-28** · verze **0.3.0** · 16 features (4 hotovo, 12 zbývá)
 
 ---
 
@@ -23,7 +23,9 @@
 - [x] Systém obtížností – Horník / Prospekter / Hlubokopáč (škáluje HP, rychlost, damage nepřátel)
 - [x] Sprint + stamina systém (`Shift`, stamina bar v HUD, drain/regen)
 - [x] Head Bob & Screen Shake (`bobPhase` Y-offset + `shakeTimer` při zásahu)
-- [x] Otevíratelné dveře (`T.DOOR`, klávesa `E`, animovaný posun textury)
+- [x] Otevíratelné dveře (`T.DOOR`, klávesa `F`, 3D zárubně, thin-door raycasting, auto-close po 3 s)
+- [x] Malá lékárnička (`T.HEALTH_SMALL`, +15 HP)
+- [x] Dřevo sousedící s dveřmi nelze rozbít
 
 ---
 

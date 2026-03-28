@@ -52,7 +52,7 @@ export class Player {
         this.angle += mdx * PLAYER_MOUSE_SENS;
 
         if (isDown('ArrowLeft')  || isDown('KeyQ')) this.angle -= PLAYER_ROT_SPEED * speedMult * dt;
-        if (isDown('ArrowRight') || isDown('KeyE')) this.angle += PLAYER_ROT_SPEED * speedMult * dt;
+        if (isDown('ArrowRight')) this.angle += PLAYER_ROT_SPEED * speedMult * dt;
 
         // ── Movement ──
         let moveX = 0, moveY = 0;

@@ -1,6 +1,6 @@
 /* ── config.js ── game-wide constants ── */
 
-export const GAME_VERSION = '0.2.0';
+export const GAME_VERSION = '0.3.0';
 
 export const SCREEN_W = 640;
 export const SCREEN_H = 400;

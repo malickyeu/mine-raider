@@ -36,8 +36,8 @@ No build step. Changes to `js/` or `index.html` take effect on browser reload. T
 ### Tile Type System (`config.js`)
 Every tile (walls, entities, collectibles) is a number defined in the `T` object:
 ```js
-export const T = { EMPTY: 0, STONE: 1, WOOD: 2, ..., GHOST: 19, PILLAR: 20 };
-export const WALL_TYPES   = new Set([T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON]);
+export const T = { EMPTY: 0, STONE: 1, WOOD: 2, ..., GHOST: 19, PILLAR: 20, HEALTH_SMALL: 21, DOOR: 22 };
+export const WALL_TYPES   = new Set([T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.DOOR]);
 export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, ...]);
 ```
 **Adding a new tile type** requires updates in: `T`, the appropriate Set (`WALL_TYPES` or `ENTITY_TYPES`), `TILE_COLORS`, `TILE_LABEL_KEYS`, and a texture generator in `textures.js`.
@@ -59,6 +59,21 @@ HP is tracked in a plain object keyed by `"x,y"` string, separate from the map g
 ```js
 let breakableWalls = {};  // "x,y" → remaining HP (initial: WALL_HP[T.WOOD] = 3)
 ```
+Wood walls adjacent to doors (`T.DOOR`) cannot be broken.
+
+### Door System (`raycaster.js`, `main.js`)
+Doors are Wolf3D-style thin walls at tile center with 3D square frame posts:
+```js
+let doorStates = {};  // "x,y" → { open: 0..1, opening: bool, closing: bool, closeTimer: number }
+```
+- **Orientation** auto-detected from neighbors: walls above/below → vertical door (N-S)
+- **Raycaster** handles doors via multi-plane intersection (center plane + frame post AABBs), not standard DDA wall hit
+- **Collision**: `isWall(mapData, gx, gy, doorStates)` — open doors (≥90%) are passable; `doorStates` must be passed through `moveWithCollision`
+- **Auto-close** after 3 s; blocked if entity stands in tile
+- Interaction key: `F` (not `E` — `E` was previously rotation)
+
+### Head Bob & Screen Shake (`renderer.js`, `entities.js`)
+`player.bobPhase` drives Y-offset via `ctx.translate()` at frame start. `player.shakeTimer` (set in `takeDamage()`) adds random X/Y jitter. HUD is drawn after `ctx.restore()` so it stays stable.
 
 ### Ghost Special Behavior (`entities.js`)
 `Ghost` bypasses `isWall()` checks during movement — the only entity that ignores wall collisions. Handle this explicitly when touching enemy pathfinding.
@@ -72,10 +87,12 @@ Language persisted under `localStorage` key `mine_raider_lang`; map saved under 
 
 ### Rendering Pipeline (per frame)
 `renderer.js → renderFrame()`:
-1. Draw ceiling & floor flat fills + depth gradients
-2. `castRays()` → calls `drawColumn` for each screen column (wall textures + fog + crack overlay)
-3. `renderSprites()` — billboard sprites depth-clipped against `depthBuffer`
-4. `drawHUD()` — health bar, score, minimap, level name
+1. Apply head bob + screen shake via `ctx.translate()`
+2. Draw ceiling & floor flat fills + depth gradients
+3. `castRays(mapData, ..., doorStates)` → calls `drawColumn` for each screen column (wall textures + thin-door rendering + fog + crack overlay)
+4. `renderSprites()` — billboard sprites depth-clipped against `depthBuffer`
+5. `ctx.restore()` — remove bob/shake offset
+6. `drawHUD()` — health bar, score, minimap (with door state lines), level name
 
 ## Key Constraints
 - **No bundler / no transpilation** — all files use native ES module `import/export`; must run through the Express server (not `file://`)

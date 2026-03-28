@@ -126,7 +126,7 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
     ctx.restore();
 
     // ── HUD (drawn without bob/shake offset) ──
-    drawHUD(ctx, player, mapData, levelInfo);
+    drawHUD(ctx, player, mapData, levelInfo, doorStates);
 
     // ── "Click to play" hint ──
     // (shown from main.js overlay)

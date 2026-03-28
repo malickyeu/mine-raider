@@ -33,7 +33,7 @@ export function hideHelp() {
     if (el) el.classList.remove('active');
 }
 
-export function drawHUD(ctx, player, mapData, levelInfo) {
+export function drawHUD(ctx, player, mapData, levelInfo, doorStates = {}) {
     // ── Health bar ──
     const barW = 160, barH = 16;
     const barX = 14, barY = SCREEN_H - 30;
@@ -124,6 +124,7 @@ export function drawHUD(ctx, player, mapData, levelInfo) {
         for (let y = offY; y < tileY1; y++) {
             for (let x = offX; x < tileX1; x++) {
                 const tile = mapData.tiles[y][x];
+                if (tile === T.DOOR) continue; // doors drawn separately below
                 if (!WALL_TYPES.has(tile)) continue;
                 ctx.fillStyle = WALL_COLORS[tile] || '#555';
                 ctx.fillRect(
@@ -131,6 +132,33 @@ export function drawHUD(ctx, player, mapData, levelInfo) {
                     mmY + (y - offY) * MINIMAP_SCALE,
                     MINIMAP_SCALE, MINIMAP_SCALE
                 );
+            }
+        }
+
+        // ── Doors: thin line at tile center, gap when open ──
+        for (let y = offY; y < tileY1; y++) {
+            for (let x = offX; x < tileX1; x++) {
+                if (mapData.tiles[y][x] !== T.DOOR) continue;
+                const ds = doorStates[`${x},${y}`];
+                const openAmt = ds ? ds.open : 0;
+                if (openAmt >= 0.99) continue; // fully open → invisible
+
+                const tx = mmX + (x - offX) * MINIMAP_SCALE;
+                const ty = mmY + (y - offY) * MINIMAP_SCALE;
+                const s = MINIMAP_SCALE;
+                const closedPx = s * (1 - openAmt);
+
+                ctx.fillStyle = '#aa8833';
+                // Walls above/below → vertical door (line along Y), else horizontal
+                const hasWallUp   = y > 0 && WALL_TYPES.has(mapData.tiles[y - 1][x]) && mapData.tiles[y - 1][x] !== T.DOOR;
+                const hasWallDown = y < mapData.height - 1 && WALL_TYPES.has(mapData.tiles[y + 1][x]) && mapData.tiles[y + 1][x] !== T.DOOR;
+                if (hasWallUp || hasWallDown) {
+                    // Door runs N-S (vertical), draw vertical line at center
+                    ctx.fillRect(tx + s / 2 - 1, ty, 2, closedPx);
+                } else {
+                    // Door runs E-W (horizontal), draw horizontal line at center
+                    ctx.fillRect(tx, ty + s / 2 - 1, closedPx, 2);
+                }
             }
         }
 

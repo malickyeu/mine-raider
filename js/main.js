@@ -288,8 +288,8 @@ function gameLoop(now) {
     if (!isHelpVisible()) {
         player.update(dt, mapData, doorStates);
 
-        // ── Open/close doors (E key) ──
-        if (isDown('KeyE')) {
+        // ── Open/close doors (F key) ──
+        if (isDown('KeyF')) {
             const cosA = Math.cos(player.angle);
             const sinA = Math.sin(player.angle);
             for (let d = 0.5; d <= 1.5; d += 0.25) {
@@ -382,6 +382,13 @@ function gameLoop(now) {
                 const wy = Math.floor(player.y + sinA * d);
                 const tile = getTile(mapData, wx, wy);
                 if (BREAKABLE_TYPES.has(tile)) {
+                    // Don't break walls adjacent to doors (structural support)
+                    const adjDoor = getTile(mapData, wx-1, wy) === T.DOOR ||
+                                    getTile(mapData, wx+1, wy) === T.DOOR ||
+                                    getTile(mapData, wx, wy-1) === T.DOOR ||
+                                    getTile(mapData, wx, wy+1) === T.DOOR;
+                    if (adjDoor) break;
+
                     const key = `${wx},${wy}`;
                     if (breakableWalls[key] === undefined) breakableWalls[key] = WALL_HP[tile];
                     breakableWalls[key]--;

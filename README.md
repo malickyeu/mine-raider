@@ -37,7 +37,9 @@ Everything — wall textures, sprites, sounds — is **procedurally generated at
 | **Map generator** | Configurable size/rooms/difficulty/**target score**; BFS connectivity guarantee; locked door placement; dynamic room cap; items placed near walls |
 | **High score** | Per-difficulty best score in `localStorage`; shown on difficulty screen and end screens |
 | **i18n** | Czech 🇨🇿 / English 🇬🇧 UI language switch (persisted in localStorage) |
-| **Audio** | Web Audio oscillator-based SFX — no audio files needed |
+| **Audio** | **Ambient soundtrack** *(drone + cave noise + tension + water drips; modulated by HP and enemy proximity)*, per-enemy SFX *(bat screech, spider hiss, skeleton rattle, ghost wail)* — all procedurally generated, no audio files |
+| **Settings** | Submenu accessible from main menu: SFX on/off, Music on/off, Language toggle — all persisted in localStorage |
+| **Keyboard navigation** | Full arrow-key + Enter navigation in menu, difficulty, settings, and overlays; ESC / Backspace to go back |
 | **HUD** | Health bar, stamina bar, score, minimap with FoW + entity icons, level name + difficulty badge, key icons, flashlight indicator |
 | **Help overlay** | In-game help screen (press `H`) |
 
@@ -72,7 +74,7 @@ npm run dev
 
 | Key | Action |
 |---|---|
-| `W A S D` / Arrow keys | Move |
+| `W A S D` / Arrow keys | Move / Navigate menus |
 | `Shift` | Sprint (1.6× speed, drains stamina) |
 | Mouse | Look around (click canvas to lock pointer) |
 | `Space` | Swing pickaxe — attack enemies, break wood walls |
@@ -80,7 +82,8 @@ npm run dev
 | `L` | Toggle lantern on / off |
 | `M` | Toggle minimap |
 | `H` | Toggle help overlay |
-| `ESC` | Return to menu (or editor when playing a custom map) |
+| `Enter` / `Numpad Enter` | Confirm menu selection |
+| `ESC` / `Backspace` | Return to menu (or editor when playing a custom map) |
 
 ---
 
@@ -204,6 +207,8 @@ action-game/
 - **Flashlight** is a collectible entity (`T.FLASHLIGHT`) that enables a lighting cone: fog falloff and vignette are gentler within the player's facing angle; toggled on/off with `L`; `player.flashlightOn` is separate from `player.hasFlashlight` so the state survives level transitions
 - **Sprite fog** is applied via `globalAlpha` (not a `fillRect` overlay) to avoid rectangular artefacts on sprites with transparent backgrounds
 - **Locked doors** (`T.DOOR_RED`, `T.DOOR_BLUE`) keep their tile type permanently — an `unlocked` flag in `doorStates` records the first successful key use; the coloured texture and minimap colour are always preserved
+- **Ambient soundtrack** runs continuously during gameplay: two detuned 55 Hz sine oscillators (drone), white noise through lowpass filter (cave rumble), sawtooth tension layer (fades in with enemy proximity), random water drips; modulated by `updateAmbient(playerHp, nearestEnemyDist)` every frame; can be toggled on/off in Settings submenu
+- **Per-enemy SFX** — each enemy type has unique attack and death sounds layered on top of base `sfxHit`; `player.lastHitByType` is set by `Enemy.update()` and consumed by `main.js` after entity loop to fire `sfxEnemyAttack(type)`
 - **Head bob & screen shake** apply Y / XY canvas translation before rendering; HUD is drawn after `ctx.restore()` so it remains stable
 - **Ghost enemy** skips collision checks and always has line-of-sight, making it the most dangerous enemy type
 

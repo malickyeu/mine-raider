@@ -188,55 +188,63 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
     {
         const weaponId = player.currentWeapon || 'pickaxe';
         const weaponTex = getWeaponTexture(weaponId);
-        const wScale = 3.5;                // scale factor for weapon sprite
+        const wScale = 2.6;
         const wW = weaponTex.width * wScale;
         const wH = weaponTex.height * wScale;
 
-        // Base position: bottom-center-right of screen
-        let baseX = SCREEN_W * 0.52 - wW / 2;
-        let baseY = SCREEN_H - wH + 20;
+        // Base position: center-right, most of weapon visible
+        let baseX = SCREEN_W * 0.52;
+        let baseY = SCREEN_H - wH * 0.85;
 
         // Idle bob (subtle, synced to player walk)
-        baseX += Math.sin(player.bobPhase * 0.5) * 4;
-        baseY += Math.abs(Math.sin(player.bobPhase)) * 5;
+        baseX += Math.sin(player.bobPhase * 0.5) * 3;
+        baseY += Math.abs(Math.sin(player.bobPhase)) * 4;
 
-        // Swing animation
+        // Swing animation — wind up to the right, then slam left toward center
+        // with pseudo-3D: scale grows during strike (weapon thrusts forward)
         let swingAngle = 0;
         let swingOX = 0, swingOY = 0;
+        let swingScale = 1.0;
         if (player.attackTimer > 0) {
-            // attackTimer goes from 0.4 → 0 during attack
             const t = 1 - player.attackTimer / 0.4;  // 0 → 1
-            if (t < 0.35) {
-                // Wind up: pull back
-                const p = t / 0.35;
-                swingAngle = -0.3 * p;
+            if (t < 0.25) {
+                // Wind-up: tilt right & up, shrink slightly (pulling back)
+                const p = t / 0.25;
+                swingAngle = 0.35 * p;
                 swingOX = 20 * p;
-                swingOY = -10 * p;
-            } else if (t < 0.6) {
-                // Strike: swing forward fast
-                const p = (t - 0.35) / 0.25;
-                swingAngle = -0.3 + 1.0 * p;
-                swingOX = 20 - 50 * p;
-                swingOY = -10 + 30 * p;
+                swingOY = -25 * p;
+                swingScale = 1.0 - 0.06 * p;   // slight shrink (pulling away)
+            } else if (t < 0.55) {
+                // Strike: swing left & down, grow (thrusting forward into scene)
+                const p = (t - 0.25) / 0.3;
+                swingAngle = 0.35 - 0.85 * p;
+                swingOX = 20 - 70 * p;
+                swingOY = -25 + 55 * p;
+                swingScale = 0.94 + 0.18 * p;  // grow past 1.0 → 1.12 (forward lunge)
             } else {
                 // Recovery: return to rest
-                const p = (t - 0.6) / 0.4;
-                swingAngle = 0.7 * (1 - p);
-                swingOX = -30 * (1 - p);
-                swingOY = 20 * (1 - p);
+                const p = (t - 0.55) / 0.45;
+                swingAngle = -0.50 * (1 - p);
+                swingOX = -50 * (1 - p);
+                swingOY = 30 * (1 - p);
+                swingScale = 1.12 - 0.12 * p;  // back to 1.0
             }
         }
 
         ctx.save();
-        const pivotX = baseX + wW * 0.6 + swingOX;
-        const pivotY = baseY + wH * 0.85 + swingOY;
+        const pivotX = baseX + wW * 0.55 + swingOX;
+        const pivotY = baseY + wH * 0.95 + swingOY;
         ctx.translate(pivotX, pivotY);
         ctx.rotate(swingAngle);
-        ctx.drawImage(weaponTex, -wW * 0.6, -wH * 0.85, wW, wH);
+        ctx.scale(swingScale, swingScale);
+        ctx.drawImage(weaponTex, -wW * 0.55, -wH * 0.95, wW, wH);
+        ctx.translate(pivotX, pivotY);
+        ctx.rotate(swingAngle);
+        ctx.drawImage(weaponTex, -wW * 0.55, -wH * 0.95, wW, wH);
         ctx.restore();
     }
 
-    // ── Attack flash (brief golden tint at peak of swing) ──
+    // ── Attack flash (brief golden tint at impact) ──
     if (player.attackTimer > 0.15 && player.attackTimer < 0.3) {
         ctx.fillStyle = 'rgba(255,200,50,0.08)';
         ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);

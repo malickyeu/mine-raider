@@ -713,6 +713,7 @@ function gameLoop(now) {
                         mapData.tiles[wy][wx] = T.EMPTY;
                         delete breakableWalls[key];
                         sfxBreakWood();
+                        player.addScore(25);
                     } else {
                         sfxHitWood();
                     }

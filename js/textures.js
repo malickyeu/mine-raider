@@ -873,69 +873,73 @@ function drawWeaponPickaxe() {
     const c = createCanvas(W, H);
     const ctx = c.getContext('2d');
 
-    // Handle (wooden shaft) — angled from bottom-right to center
+    // The pickaxe is drawn in the lower-right quadrant, angled so
+    // handle goes bottom-right → top-left, head at top-left.
     ctx.save();
-    ctx.translate(W * 0.62, H * 0.92);
-    ctx.rotate(-0.65);
-    // Main shaft
+    ctx.translate(W * 0.72, H * 0.88);
+    ctx.rotate(-0.75); // tilt the whole weapon
+
+    // ── Handle (wooden shaft) ──
+    const handleLen = 82, handleW = 7;
     ctx.fillStyle = '#8B5E3C';
-    ctx.fillRect(-5, -90, 10, 90);
-    // Wood grain lines
-    ctx.strokeStyle = 'rgba(60,35,15,0.4)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < 5; i++) {
-        const y = -85 + i * 18;
-        ctx.beginPath(); ctx.moveTo(-4, y); ctx.lineTo(4, y + 6); ctx.stroke();
+    ctx.fillRect(-handleW / 2, -handleLen, handleW, handleLen);
+    // Wood grain
+    ctx.strokeStyle = 'rgba(60,35,15,0.5)';
+    ctx.lineWidth = 0.8;
+    for (let i = 0; i < 6; i++) {
+        const y = -handleLen + 8 + i * 13;
+        ctx.beginPath(); ctx.moveTo(-3, y); ctx.lineTo(3, y + 4); ctx.stroke();
     }
-    // Grip wrap (bottom of handle)
-    ctx.fillStyle = '#654321';
-    for (let i = 0; i < 3; i++) {
-        ctx.fillRect(-6, -12 + i * 8, 12, 5);
+    // Grip wrapping at bottom
+    ctx.fillStyle = '#5C3A1E';
+    for (let i = 0; i < 4; i++) {
+        ctx.fillRect(-handleW / 2 - 1, -8 + i * 5, handleW + 2, 3);
     }
-    ctx.restore();
 
-    // Metal head — two pointed picks
-    ctx.save();
-    ctx.translate(W * 0.35, H * 0.28);
-    ctx.rotate(-0.65);
+    // ── Metal head ──
+    const headY = -handleLen + 2;
 
-    // Left pick
-    ctx.fillStyle = '#7A7A7A';
+    // Left pick — curves downward (toward handle)
+    ctx.fillStyle = '#707070';
     ctx.beginPath();
-    ctx.moveTo(-2, 0);
-    ctx.lineTo(-38, -8);
-    ctx.lineTo(-40, -4);
-    ctx.lineTo(-2, 6);
+    ctx.moveTo(-4, headY + 4);
+    ctx.lineTo(-28, headY - 2);
+    ctx.quadraticCurveTo(-34, headY + 4, -32, headY + 14);
+    ctx.lineTo(-28, headY + 10);
+    ctx.quadraticCurveTo(-30, headY + 6, -4, headY + 9);
     ctx.fill();
-    // Pick tip highlight
-    ctx.fillStyle = '#B0B0B0';
+    // Pick edge highlight
+    ctx.fillStyle = '#999';
     ctx.beginPath();
-    ctx.moveTo(-35, -7);
-    ctx.lineTo(-40, -4);
-    ctx.lineTo(-35, -2);
-    ctx.fill();
-
-    // Right pick
-    ctx.fillStyle = '#7A7A7A';
-    ctx.beginPath();
-    ctx.moveTo(2, 0);
-    ctx.lineTo(32, -12);
-    ctx.lineTo(34, -8);
-    ctx.lineTo(2, 6);
-    ctx.fill();
-    // Tip highlight
-    ctx.fillStyle = '#B0B0B0';
-    ctx.beginPath();
-    ctx.moveTo(28, -11);
-    ctx.lineTo(34, -8);
-    ctx.lineTo(29, -5);
+    ctx.moveTo(-28, headY - 1);
+    ctx.quadraticCurveTo(-33, headY + 4, -32, headY + 12);
+    ctx.lineTo(-30, headY + 10);
+    ctx.quadraticCurveTo(-31, headY + 5, -27, headY + 1);
     ctx.fill();
 
-    // Center binding
-    ctx.fillStyle = '#5A5A5A';
-    ctx.fillRect(-6, -2, 12, 10);
+    // Right pick — also curves downward
+    ctx.fillStyle = '#707070';
+    ctx.beginPath();
+    ctx.moveTo(4, headY + 4);
+    ctx.lineTo(24, headY - 2);
+    ctx.quadraticCurveTo(30, headY + 4, 28, headY + 14);
+    ctx.lineTo(24, headY + 10);
+    ctx.quadraticCurveTo(26, headY + 6, 4, headY + 9);
+    ctx.fill();
+    // Flat edge highlight
     ctx.fillStyle = '#888';
-    ctx.fillRect(-5, 0, 10, 3);
+    ctx.beginPath();
+    ctx.moveTo(24, headY);
+    ctx.quadraticCurveTo(29, headY + 4, 28, headY + 12);
+    ctx.lineTo(26, headY + 10);
+    ctx.quadraticCurveTo(27, headY + 5, 23, headY + 2);
+    ctx.fill();
+
+    // Center collar (binds head to handle)
+    ctx.fillStyle = '#555';
+    ctx.fillRect(-5, headY, 10, 10);
+    ctx.fillStyle = '#777';
+    ctx.fillRect(-4, headY + 2, 8, 3);
 
     ctx.restore();
 

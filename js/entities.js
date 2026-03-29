@@ -2,7 +2,8 @@
 
 import { T, PLAYER_MAX_HP, PLAYER_SPEED, PLAYER_ROT_SPEED, PLAYER_MOUSE_SENS,
          ENEMY_SPEED, ENEMY_DAMAGE, ENEMY_HIT_INTERVAL,
-         SPRINT_MULT, STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN } from './config.js';import { isDown, consumeMouseDX } from './input.js';
+         SPRINT_MULT, STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN } from './config.js';
+import { isDown, consumeMouseDX } from './input.js';
 import { moveWithCollision } from './collision.js';
 import { isWall } from './map.js';
 
@@ -26,6 +27,7 @@ export class Player {
         this.keys = new Set();  // collected key types (T.KEY_RED, T.KEY_BLUE)
         this.hasFlashlight = false; // true once player picks up the lantern
         this.flashlightOn = true;   // toggleable on/off (L key)
+        this.lastHitByType = null;  // set by Enemy.update() → read by main.js for sfx
     }
 
     update(dt, mapData, doorStates) {
@@ -249,6 +251,7 @@ export class Enemy extends Entity {
         if (dist < 0.6 && this.hitCooldown <= 0) {
             player.takeDamage(this.damage);
             this.hitCooldown = this.hitInterval;
+            player.lastHitByType = this.type; // consumed by main.js → sfxEnemyAttack
         }
     }
 

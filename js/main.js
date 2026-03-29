@@ -6,7 +6,7 @@ import { initInput, releasePointer, isDown } from './input.js';
 import { initRenderer, renderFrame } from './renderer.js';
 import { Player, Enemy, Treasure, HealthPack, SmallHealthPack, Exit, Torch, Pillar, KeyItem, Flashlight, Barrel, MineLight, MineCart, createEntities } from './entities.js';
 import { initEditor, showEditor, rebuildEditorUI } from './editor.js';
-import { sfxPickup, sfxGem, sfxAttack, sfxDeath, sfxWin, sfxHeal, sfxEnemyDeath, sfxHitWood, sfxBreakWood, sfxDoorOpen, sfxDoorLocked, sfxKeyPickup, sfxFlashlightPickup, sfxExplosion } from './audio.js';
+import { sfxPickup, sfxGem, sfxAttack, sfxDeath, sfxWin, sfxHeal, sfxHit, sfxEnemyDie, sfxEnemyAttack, sfxHitWood, sfxBreakWood, sfxDoorOpen, sfxDoorLocked, sfxKeyPickup, sfxFlashlightPickup, sfxExplosion, startAmbient, stopAmbient, updateAmbient, toggleSfx, isSfxEnabled, toggleAmbient, isAmbientEnabled } from './audio.js';
 import { toggleMinimap, toggleHelp, isHelpVisible, hideHelp } from './hud.js';
 import { t, toggleLang } from './i18n.js';
 import { getHighScore, submitScore, getBestCampaignScore } from './highscore.js';
@@ -29,9 +29,16 @@ const helpClose     = document.getElementById('help-close');
 
 const btnPlay  = document.getElementById('btn-play');
 const btnEditor = document.getElementById('btn-editor');
-const btnLang  = document.getElementById('btn-lang');
+const btnSettings = document.getElementById('btn-settings');
 const menuHighscore = document.getElementById('menu-highscore');
 document.getElementById('game-version').textContent = `v${GAME_VERSION}`;
+
+const settingsScreen   = document.getElementById('settings-screen');
+const settingsTitle    = document.getElementById('settings-title');
+const settingsSfxBtn   = document.getElementById('settings-sfx');
+const settingsAmbBtn   = document.getElementById('settings-ambient');
+const settingsLangBtn  = document.getElementById('settings-lang');
+const settingsBackBtn  = document.getElementById('settings-back');
 
 const difficultyScreen  = document.getElementById('difficulty-screen');
 const diffScreenTitle   = document.getElementById('diff-screen-title');
@@ -45,6 +52,22 @@ let state = 'menu';
 let player, entities, mapData;
 let lastTime = 0;
 let animFrame = null;
+
+// ── Keyboard navigation focus ──
+let menuFocusIdx     = 0;
+let diffFocusIdx     = 1; // default to 'normal'
+let settingsFocusIdx = 0;
+
+function menuButtons()     { return [btnPlay, btnEditor, btnSettings]; }
+function diffButtons()     { return [diffChoiceEasy, diffChoiceNormal, diffChoiceHard, diffBackBtn]; }
+function settingsButtons() { return [settingsSfxBtn, settingsAmbBtn, settingsLangBtn, settingsBackBtn]; }
+
+function applyFocus(buttons, idx) {
+    buttons.forEach((b, i) => b.classList.toggle('kb-focus', i === idx));
+}
+function moveFocus(buttons, currentIdx, delta) {
+    return (currentIdx + delta + buttons.length) % buttons.length;
+}
 
 // ── Level system ──
 let currentLevel = 0;
@@ -84,9 +107,16 @@ function setDiffBtnContent(btn, icon, nameKey, descKey, difficulty) {
 }
 
 function refreshUIText() {
-    btnPlay.textContent   = t('btnPlay');
-    btnEditor.textContent = t('btnEditor');
-    btnLang.textContent   = t('btnLang');
+    btnPlay.textContent     = t('btnPlay');
+    btnEditor.textContent   = t('btnEditor');
+    btnSettings.textContent = t('btnSettings');
+
+    // Settings screen
+    settingsTitle.textContent   = t('settingsTitle');
+    settingsSfxBtn.textContent  = isSfxEnabled()    ? t('settingsSfxOn')     : t('settingsSfxOff');
+    settingsAmbBtn.textContent  = isAmbientEnabled() ? t('settingsAmbientOn') : t('settingsAmbientOff');
+    settingsLangBtn.textContent = t('btnLang');
+    settingsBackBtn.textContent = t('settingsBack');
     menuSubtitle.textContent = t('subtitle');
 
     // Menu high score
@@ -139,10 +169,22 @@ btnPlay.addEventListener('click', () => {
     switchState('difficulty');
 });
 btnEditor.addEventListener('click', () => switchState('editor'));
-btnLang.addEventListener('click', () => {
+btnSettings.addEventListener('click', () => switchState('settings'));
+
+// ── Settings screen handlers ──
+settingsSfxBtn.addEventListener('click', () => {
+    toggleSfx();
+    settingsSfxBtn.textContent = isSfxEnabled() ? t('settingsSfxOn') : t('settingsSfxOff');
+});
+settingsAmbBtn.addEventListener('click', () => {
+    toggleAmbient();
+    settingsAmbBtn.textContent = isAmbientEnabled() ? t('settingsAmbientOn') : t('settingsAmbientOff');
+});
+settingsLangBtn.addEventListener('click', () => {
     toggleLang();
     refreshUIText();
 });
+settingsBackBtn.addEventListener('click', () => switchState('menu'));
 overlayBtn.addEventListener('click', () => {
     if (state === 'nextlevel') switchState('game');
     else if (gameMode === 'custom') switchState('editor');
@@ -156,15 +198,72 @@ let fKeyWasDown = false;
 let lKeyWasDown = false;
 
 window.addEventListener('keydown', e => {
-    if (e.code === 'Escape') {
+    if (e.code === 'Escape' || e.code === 'Backspace') {
+        // Don't intercept Backspace inside text inputs (editor)
+        if (e.code === 'Backspace' && e.target.tagName === 'INPUT') return;
         if (isHelpVisible()) { hideHelp(); return; }
         if (state === 'difficulty') { switchState('menu'); return; }
+        if (state === 'settings')   { switchState('menu'); return; }
         if (state === 'game') {
             releasePointer();
             switchState(gameMode === 'custom' ? 'editor' : 'menu');
             return;
         }
-        if (state === 'editor') { switchState('menu'); }
+        if (state === 'editor') { switchState('menu'); return; }
+    }
+
+    // ── Menu keyboard navigation ──
+    if (state === 'menu') {
+        const btns = menuButtons();
+        if (e.code === 'ArrowDown') {
+            menuFocusIdx = moveFocus(btns, menuFocusIdx, 1);
+            applyFocus(btns, menuFocusIdx); e.preventDefault();
+        } else if (e.code === 'ArrowUp') {
+            menuFocusIdx = moveFocus(btns, menuFocusIdx, -1);
+            applyFocus(btns, menuFocusIdx); e.preventDefault();
+        } else if (e.key === 'Enter') {
+            btns[menuFocusIdx].click(); e.preventDefault();
+            return; // prevent cascading into other state checks after synchronous switchState
+        }
+        return;
+    }
+
+    // ── Difficulty keyboard navigation ──
+    if (state === 'difficulty') {
+        const btns = diffButtons();
+        if (e.code === 'ArrowDown') {
+            diffFocusIdx = moveFocus(btns, diffFocusIdx, 1);
+            applyFocus(btns, diffFocusIdx); e.preventDefault();
+        } else if (e.code === 'ArrowUp') {
+            diffFocusIdx = moveFocus(btns, diffFocusIdx, -1);
+            applyFocus(btns, diffFocusIdx); e.preventDefault();
+        } else if (e.key === 'Enter') {
+            btns[diffFocusIdx].click(); e.preventDefault();
+            return;
+        }
+        return;
+    }
+
+    // ── Settings keyboard navigation ──
+    if (state === 'settings') {
+        const btns = settingsButtons();
+        if (e.code === 'ArrowDown') {
+            settingsFocusIdx = moveFocus(btns, settingsFocusIdx, 1);
+            applyFocus(btns, settingsFocusIdx); e.preventDefault();
+        } else if (e.code === 'ArrowUp') {
+            settingsFocusIdx = moveFocus(btns, settingsFocusIdx, -1);
+            applyFocus(btns, settingsFocusIdx); e.preventDefault();
+        } else if (e.key === 'Enter') {
+            btns[settingsFocusIdx].click(); e.preventDefault();
+            return;
+        }
+        return;
+    }
+
+    // ── Overlay (gameover / nextlevel / win): Enter confirms ──
+    if (state === 'gameover' || state === 'nextlevel' || state === 'win') {
+        if (e.key === 'Enter') { overlayBtn.click(); e.preventDefault(); }
+        return;
     }
     if (e.code === 'KeyM' && state === 'game' && !mKeyWasDown) {
         mKeyWasDown = true;
@@ -188,24 +287,39 @@ window.addEventListener('keyup', e => {
 
 function switchState(newState) {
     state = newState;
+    // Remove DOM focus from any button so Enter can't re-trigger hidden buttons
+    if (document.activeElement && document.activeElement !== document.body) {
+        document.activeElement.blur();
+    }
     menuScreen.style.display = 'none';
     difficultyScreen.classList.remove('active');
+    settingsScreen.classList.remove('active');
     editorScreen.classList.remove('active');
     overlay.classList.remove('active');
     gameCanvas.style.display = 'none';
     hideHelp();
     if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
 
+    // Stop ambient when leaving the game (not during level transitions)
+    if (newState !== 'game' && newState !== 'nextlevel') stopAmbient();
+
     switch (newState) {
         case 'menu':
             menuScreen.style.display = 'flex';
             releasePointer();
-            // Reset player so next game always starts with full HP & zero score
             player = null;
+            applyFocus(menuButtons(), menuFocusIdx);
             break;
         case 'difficulty':
             difficultyScreen.classList.add('active');
             releasePointer();
+            applyFocus(diffButtons(), diffFocusIdx);
+            break;
+        case 'settings':
+            settingsScreen.classList.add('active');
+            releasePointer();
+            refreshUIText(); // ensure button texts are up to date
+            applyFocus(settingsButtons(), settingsFocusIdx);
             break;
         case 'editor':
             editorScreen.classList.add('active');
@@ -219,6 +333,7 @@ function switchState(newState) {
         case 'gameover':
             gameCanvas.style.display = 'block';
             overlay.classList.add('active');
+            overlayBtn.classList.add('kb-focus');
             overlayTitle.textContent = t('deathTitle');
             overlayTitle.style.color = '#ff4444';
             {
@@ -236,6 +351,7 @@ function switchState(newState) {
         case 'nextlevel':
             gameCanvas.style.display = 'block';
             overlay.classList.add('active');
+            overlayBtn.classList.add('kb-focus');
             overlayTitle.textContent = t('nextLevelTitle');
             overlayTitle.style.color = '#44ff88';
             overlayText.textContent = `${t('deathScore')} ${player.score.toLocaleString()} — ${t('nextLevelText')}`;
@@ -246,6 +362,7 @@ function switchState(newState) {
         case 'win':
             gameCanvas.style.display = 'block';
             overlay.classList.add('active');
+            overlayBtn.classList.add('kb-focus');
             overlayTitle.textContent = t('winTitle');
             overlayTitle.style.color = '#ffd700';
             {
@@ -303,6 +420,7 @@ function startGame() {
     doorStates = {};
     explored = Array.from({ length: mapData.height }, () => new Uint8Array(mapData.width));
     lastTime = performance.now();
+    startAmbient(); // begin / continue ambient track
     gameLoop(lastTime);
 }
 
@@ -356,7 +474,7 @@ function triggerBarrelExplosion(barrel, processedBarrels = new Set()) {
         if (edist < RADIUS) {
             ent.takeDamage();
             if (!ent.alive) {
-                sfxEnemyDeath();
+                sfxEnemyDie(ent.type);
                 player.addScore(getEnemyScore(ent.type));
             }
         }
@@ -567,7 +685,7 @@ function gameLoop(now) {
                     } else {
                         ent.takeDamage();
                         if (!ent.alive) {
-                            sfxEnemyDeath();
+                            sfxEnemyDie(ent.type);
                             player.addScore(getEnemyScore(ent.type));
                         }
                     }
@@ -605,12 +723,23 @@ function gameLoop(now) {
             }
         }
 
+        const hpBefore = player.hp; // snapshot for hit detection
+
         for (const ent of entities) {
             if (ent instanceof Enemy) ent.update(dt, mapData, player);
             else if (ent instanceof Torch) ent.update(dt);
             else if (ent instanceof Flashlight) ent.update(dt);
             else if (ent instanceof Barrel) ent.update(dt);
             else if (ent instanceof MineLight) ent.update(dt);
+        }
+
+        // ── Enemy attack SFX: base hit sound + per-type flavour ──
+        if (player.hp < hpBefore) {
+            sfxHit();
+            if (player.lastHitByType !== null) {
+                sfxEnemyAttack(player.lastHitByType);
+            }
+            player.lastHitByType = null;
         }
 
         // ── Enemy-barrel proximity → explosion ──
@@ -667,6 +796,16 @@ function gameLoop(now) {
         }
 
         if (!player.alive) { switchState('gameover'); return; }
+
+        // ── Modulate ambient soundtrack ──
+        let nearestEnemyDist = Infinity;
+        for (const ent of entities) {
+            if (!(ent instanceof Enemy) || !ent.alive) continue;
+            const edx = ent.x - player.x, edy = ent.y - player.y;
+            const d = Math.sqrt(edx * edx + edy * edy);
+            if (d < nearestEnemyDist) nearestEnemyDist = d;
+        }
+        updateAmbient(player.hp, nearestEnemyDist);
     }
 
     renderFrame(mapData, player, entities, levelInfo, breakableWalls, doorStates, explored);

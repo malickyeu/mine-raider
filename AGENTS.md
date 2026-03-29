@@ -1,5 +1,5 @@
 # AGENTS.md – Mine Raider Codebase Guide
-> Version **0.5.0** · Last updated 2026-03-29
+> Version **0.6.0** · Last updated 2026-03-29
 
 ## Project Overview
 Wolfenstein 3D-style raycasting game in **vanilla JavaScript + HTML5 Canvas**. No bundler, no game engine, no external assets — textures and audio are all procedurally generated at runtime.
@@ -26,7 +26,7 @@ No build step. Changes to `js/` or `index.html` take effect on browser reload. T
 | `js/sprites.js` | Billboard sprite rendering; clips against `depthBuffer` from raycaster |
 | `js/entities.js` | `Player`, `Enemy` subclasses (`Bat`, `Spider`, `Skeleton`, `Ghost`), collectibles, decorations (`Barrel`, `MineLight`, `MineCart`, `PickaxeDecor`) |
 | `js/collision.js` | AABB slide collision; axes tested independently to allow wall-sliding |
-| `js/audio.js` | Web Audio oscillator SFX; no audio files |
+| `js/audio.js` | Web Audio oscillator SFX **+ ambient soundtrack** (`startAmbient` / `stopAmbient` / `updateAmbient`) **+ per-enemy SFX** (`sfxEnemyAttack(type)` / `sfxEnemyDie(type)`) **+ settings toggles** (`toggleSfx` / `toggleAmbient`); no audio files |
 | `js/hud.js` | Health bar, score, minimap, help overlay toggle |
 | `js/i18n.js` | Czech / English strings via `t(key)`; persisted in `localStorage` |
 | `js/input.js` | `isDown(code)` + pointer-lock mouse delta |
@@ -126,6 +126,34 @@ Language persisted under `localStorage` key `mine_raider_lang`; map saved under 
 4. `renderSprites()` — billboard sprites depth-clipped against `depthBuffer`; exploding barrels use explosion texture
 5. `ctx.restore()` — remove bob/shake offset
 6. `drawHUD()` — health bar, score, minimap (with door state lines), level name
+
+### Ambient Soundtrack (`audio.js`, `main.js`)
+Procedural in-game ambient track; no audio files:
+- **`startAmbient()`** — creates (idempotent: skips if already running): drone (two detuned 55 Hz sines), cave noise (white noise → lowpass), tension sawtooth layer. Fades in over 2.5 s. Called from `startGame()`.
+- **`stopAmbient()`** — fades master gain out, schedules oscillator `.stop()` in 3 s, clears drip timer. Called in `switchState` for any state except `'game'` / `'nextlevel'` so ambient persists across level transitions.
+- **`updateAmbient(playerHp, nearestEnemyDist)`** — called every frame; modulates tension gain + noise filter cutoff (enemy proximity) and drone pitch (HP). Uses `setTargetAtTime` so changes are smooth.
+- **Water drips** — random `setTimeout` chain (5–19 s intervals) plays sine plops ± faint echo while ambient is running.
+
+### Per-Enemy SFX (`audio.js`, `main.js`, `entities.js`)
+- `sfxEnemyAttack(type)` — per-type attack sound (bat screech, spider hiss, skeleton rattle, ghost wail); layered on top of generic `sfxHit()`
+- `sfxEnemyDie(type)` — per-type death sound; called from `main.js` with `ent.type`
+- **Hit detection**: `main.js` snapshots `hpBefore = player.hp` before entity updates; if HP decreased → fires `sfxHit()` + `sfxEnemyAttack(player.lastHitByType)`
+- `player.lastHitByType` — set in `Enemy.update()` when contact damage is dealt; consumed and reset in `main.js` after entity loop; avoids audio import in `entities.js`
+
+### Settings Screen (`main.js`, `audio.js`, `i18n.js`)
+State `'settings'` — submenu accessible from main menu via `⚙️ Nastavení`:
+- **SFX toggle**: `toggleSfx()` / `isSfxEnabled()` — gates `playTone()` calls; persisted as `mine_raider_sfx` in localStorage
+- **Ambient toggle**: `toggleAmbient()` / `isAmbientEnabled()` — live mutes/unmutes master gain if ambient is running; persisted as `mine_raider_ambient`
+- **Language toggle**: moved here from main menu
+- Settings are independent — SFX and ambient can be toggled separately
+
+### Keyboard Navigation (`main.js`)
+All menu screens fully navigable without mouse:
+- **Arrow keys** move visual focus (`kb-focus` CSS class) between buttons
+- **Enter / Numpad Enter** (`e.key === 'Enter'`) confirms focused button
+- **ESC / Backspace** goes back (Backspace skipped inside `<input>` elements)
+- **Critical pattern**: keydown handler uses `return` after Enter action to prevent synchronous state-change cascade (e.g., Enter on menu → `switchState('settings')` → same keydown event would re-trigger settings handler without the `return`)
+- `document.activeElement.blur()` called at start of every `switchState` to prevent focus-trap on hidden buttons
 
 ## Key Constraints
 - **No bundler / no transpilation** — all files use native ES module `import/export`; must run through the Express server (not `file://`)

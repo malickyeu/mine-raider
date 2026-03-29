@@ -1,7 +1,7 @@
 # ⛏️ Mine Raider – Roadmap
 
-> Živý dokument sledující plánované funkce a nápady pro další rozvoj hry.  
-> Poslední aktualizace: **2026-03-29** · verze **0.5.0** · 20 features (11 hotovo, 9 zbývá)
+> Živ dokument sledujc plnovan funkce a npady pro dalš rozvoj hry.  
+> Posledn aktualizace: **2026-03-29**  verze **0.6.0**  24 features (15 hotovo, 9 zbv)
 
 ---
 
@@ -34,7 +34,11 @@
 - [x] **Výbušné sudy** 💣 — `T.BARREL` entita, výbuch krumpáčem / kontaktem nepřítele, řetězové výbuchy, plošné poškození (hráč, nepřátelé, dřevo), exploze sprite, screen shake, SFX
 - [x] **Ambientní dekorace** ⛏️ — důlní světla (`T.MINE_LIGHT`, dynamické osvětlení radius 3.5), důlní vozíky (`T.MINE_CART`, blokují pohyb), opřené krumpáče (`T.PICKAXE_DECOR`); v editoru i generátoru
 - [x] **Fog-of-War minimapa** 🗺️ — `explored[][]` grid odhalovaný BFS flood-fill (zastaví se na zdech a zavřených dveřích); vzdálené prozkoumané dlaždice ztmaveny; ikonky statických entit v minimapě; dveřní rám se odhalí spolu s dveřmi
-- [x] **Vylepšený generátor map** ⚙️ — parametr `targetScore` škáluje nepřátele a sběratelné předměty; dynamický max místností dle velikosti mapy; `healthSmall` = 0.5 × místností; zvýšené základní počty nepřátel (hard: 5/3/5/3); mine carty se neumísťují vedle dveří; lékárničky a krumpáče vždy u zdi (`nearWallEmpty` pool); živý preview v editoru se odhadovaným skóre
+- [x] **Vylepšen genertor map** ⚙️ — parametr `targetScore` škluje nepřtele a sběrateln předměty; dynamick max mstnost dle velikosti mapy; `healthSmall` = 0.5  mstnost; zvšen zkladn počty nepřtel (hard: 5/3/5/3); mine carty se neumsťuj vedle dveř; lkrničky a krumpče vždy u zdi (`nearWallEmpty` pool); živ preview v editoru se odhadovanm skre
+- [x] **Ambientn soundtrack** 🎵 — procedurln smyčka bez audio souborů: drone (2 rozladěn 55 Hz siny), šum jeskyně (white noise → lowpass), napěťov vrstva (sawtooth fades in dle vzdlenosti nepřtele), kapky vody (random setTimeout 5–19 s s echem); modulace dle HP (drone pitch) a proximity (filter cutoff); `startAmbient` / `stopAmbient` / `updateAmbient` v `audio.js`, integrce v `main.js`
+- [x] **Per-enemy SFX** 🔊 — každý typ nepřtele m vlastn zvuk toku (bat screech, spider hiss, skeleton rattle, ghost wail) i smrt; hráč slš `sfxHit` + typov zvuk překrytm; implementovno přes `player.lastHitByType` + HP-diff detekce v `main.js`
+- [x] **Nastavensubmenu** ⚙️ — zvlštn obrazovka Nastaven dostupn z hlavnho menu: přepnač SFX (🔊/🔇), přepnač hudby (🎵), přepnač jazyka (🌐); vše persistovno v `localStorage`; odpojen z hlavnho menu
+- [x] **Plnklavesnicov navigace** ⌨️ — šipky + Enter/Numpad Enter v menu, výběru obtžnosti, nastaven a overlay; Backspace = ESC; fix focus-trap (blur při switchState); fix synchronn race condition Enter → return po akcch
 
 ---
 
@@ -64,11 +68,6 @@
 - Postupně se odkrývající příběh o záhadách starých dolů (několik řádků textu)
 
 
-### 13. 🎵 Ambientní soundtrack dolu
-- Loopující procedurální ambientní skladba: nízký dronující oscilátor + filtrovaný šum
-- Příležitostné kapky vody / echo tóny generované Web Audio
-- Infrastruktura (`AudioContext`, `OscillatorNode`, `GainNode`) je již připravena v `audio.js`
-- Modulace hlasitosti/tónu dle aktuálního HP nebo blízkosti nepřítele
 
 ### 15. 🏹 Ranged zbraň (Kuše / Dynamit)
 - Sekundární zbraň přepínatelná číselnými klávesami vedle pickaxe
@@ -116,10 +115,10 @@ Sprint 2 (gameplay hloubka):
   → #3  Výbušné sudy ✅
   → #4  Pasti
 
-Sprint 3 (polishing & atmosféra):
-  → #13 Ambientní soundtrack
-  → #7  Automap / Fog of War
-  → #10 Příběhové obrazovky
+Sprint 3 (polishing & atmosfra):
+  → #13 Ambientn soundtrack ✅
+  → #7  Automap / Fog of War ✅
+  → #10 Přběhov obrazovky
 
 Sprint 4 (zbraně & tajemství):
   → #15 Ranged zbraň (kuše / dynamit)

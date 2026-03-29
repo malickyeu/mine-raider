@@ -19,7 +19,18 @@ const translations = {
         subtitle:       'Poklad starých dolů',
         btnPlay:        '▶ Hrát',
         btnEditor:      '🗺️ Editor map',
+        btnSettings:    '⚙️ Nastavení',
         btnLang:        '🌐 English',
+        btnAudioOn:     '🔊 Zvuk: Zap',
+        btnAudioOff:    '🔇 Zvuk: Vyp',
+
+        // Settings screen
+        settingsTitle:      '⚙️ Nastavení',
+        settingsSfxOn:      '🔊 Zvukové efekty: Zap',
+        settingsSfxOff:     '🔇 Zvukové efekty: Vyp',
+        settingsAmbientOn:  '🎵 Hudba: Zap',
+        settingsAmbientOff: '🎵 Hudba: Vyp',
+        settingsBack:       '← Zpět',
 
         // HUD
         hp:             'HP',
@@ -195,7 +206,18 @@ const translations = {
         subtitle:       'Treasure of the Old Mines',
         btnPlay:        '▶ Play',
         btnEditor:      '🗺️ Map Editor',
+        btnSettings:    '⚙️ Settings',
         btnLang:        '🌐 Čeština',
+        btnAudioOn:     '🔊 Sound: On',
+        btnAudioOff:    '🔇 Sound: Off',
+
+        // Settings screen
+        settingsTitle:      '⚙️ Settings',
+        settingsSfxOn:      '🔊 Sound Effects: On',
+        settingsSfxOff:     '🔇 Sound Effects: Off',
+        settingsAmbientOn:  '🎵 Music: On',
+        settingsAmbientOff: '🎵 Music: Off',
+        settingsBack:       '← Back',
 
         hp:             'HP',
         hintBar:        'H — Help',

@@ -862,3 +862,139 @@ export function getExplosionTexture() {
     return spriteCache['_explosion'];
 }
 
+// ─────────────────────────────────────────────
+// ── First-Person Weapon Textures ──
+// ─────────────────────────────────────────────
+
+const weaponCache = {};
+
+function drawWeaponPickaxe() {
+    const W = 128, H = 128;
+    const c = createCanvas(W, H);
+    const ctx = c.getContext('2d');
+
+    // Handle (wooden shaft) — angled from bottom-right to center
+    ctx.save();
+    ctx.translate(W * 0.62, H * 0.92);
+    ctx.rotate(-0.65);
+    // Main shaft
+    ctx.fillStyle = '#8B5E3C';
+    ctx.fillRect(-5, -90, 10, 90);
+    // Wood grain lines
+    ctx.strokeStyle = 'rgba(60,35,15,0.4)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 5; i++) {
+        const y = -85 + i * 18;
+        ctx.beginPath(); ctx.moveTo(-4, y); ctx.lineTo(4, y + 6); ctx.stroke();
+    }
+    // Grip wrap (bottom of handle)
+    ctx.fillStyle = '#654321';
+    for (let i = 0; i < 3; i++) {
+        ctx.fillRect(-6, -12 + i * 8, 12, 5);
+    }
+    ctx.restore();
+
+    // Metal head — two pointed picks
+    ctx.save();
+    ctx.translate(W * 0.35, H * 0.28);
+    ctx.rotate(-0.65);
+
+    // Left pick
+    ctx.fillStyle = '#7A7A7A';
+    ctx.beginPath();
+    ctx.moveTo(-2, 0);
+    ctx.lineTo(-38, -8);
+    ctx.lineTo(-40, -4);
+    ctx.lineTo(-2, 6);
+    ctx.fill();
+    // Pick tip highlight
+    ctx.fillStyle = '#B0B0B0';
+    ctx.beginPath();
+    ctx.moveTo(-35, -7);
+    ctx.lineTo(-40, -4);
+    ctx.lineTo(-35, -2);
+    ctx.fill();
+
+    // Right pick
+    ctx.fillStyle = '#7A7A7A';
+    ctx.beginPath();
+    ctx.moveTo(2, 0);
+    ctx.lineTo(32, -12);
+    ctx.lineTo(34, -8);
+    ctx.lineTo(2, 6);
+    ctx.fill();
+    // Tip highlight
+    ctx.fillStyle = '#B0B0B0';
+    ctx.beginPath();
+    ctx.moveTo(28, -11);
+    ctx.lineTo(34, -8);
+    ctx.lineTo(29, -5);
+    ctx.fill();
+
+    // Center binding
+    ctx.fillStyle = '#5A5A5A';
+    ctx.fillRect(-6, -2, 12, 10);
+    ctx.fillStyle = '#888';
+    ctx.fillRect(-5, 0, 10, 3);
+
+    ctx.restore();
+
+    return c;
+}
+
+function drawWeaponWarHammer() {
+    const W = 128, H = 128;
+    const c = createCanvas(W, H);
+    const ctx = c.getContext('2d');
+
+    // Handle — thicker, reinforced
+    ctx.save();
+    ctx.translate(W * 0.60, H * 0.92);
+    ctx.rotate(-0.55);
+    ctx.fillStyle = '#6B4226';
+    ctx.fillRect(-7, -95, 14, 95);
+    // Iron bands
+    ctx.fillStyle = '#666';
+    for (let i = 0; i < 4; i++) {
+        ctx.fillRect(-8, -88 + i * 22, 16, 4);
+    }
+    ctx.restore();
+
+    // Hammer head — massive block
+    ctx.save();
+    ctx.translate(W * 0.34, H * 0.24);
+    ctx.rotate(-0.55);
+
+    // Main block
+    ctx.fillStyle = '#5A5A5A';
+    ctx.fillRect(-28, -10, 56, 22);
+    // Top face (lighter)
+    ctx.fillStyle = '#777';
+    ctx.fillRect(-26, -8, 52, 6);
+    // Spike on back
+    ctx.fillStyle = '#6A6A6A';
+    ctx.beginPath();
+    ctx.moveTo(-28, -6);
+    ctx.lineTo(-42, 2);
+    ctx.lineTo(-28, 8);
+    ctx.fill();
+    // Front flat face
+    ctx.fillStyle = '#888';
+    ctx.fillRect(22, -8, 6, 18);
+
+    ctx.restore();
+
+    return c;
+}
+
+export function getWeaponTexture(weaponId) {
+    if (!weaponCache[weaponId]) {
+        switch (weaponId) {
+            case 'pickaxe':   weaponCache[weaponId] = drawWeaponPickaxe(); break;
+            case 'warhammer': weaponCache[weaponId] = drawWeaponWarHammer(); break;
+            default:          weaponCache[weaponId] = drawWeaponPickaxe();
+        }
+    }
+    return weaponCache[weaponId];
+}
+

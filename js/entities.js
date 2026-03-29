@@ -28,6 +28,7 @@ export class Player {
         this.hasFlashlight = false; // true once player picks up the lantern
         this.flashlightOn = true;   // toggleable on/off (L key)
         this.lastHitByType = null;  // set by Enemy.update() → read by main.js for sfx
+        this.currentWeapon = 'pickaxe'; // 'pickaxe' | 'warhammer'
     }
 
     update(dt, mapData, doorStates) {

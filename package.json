@@ -1,6 +1,6 @@
 {
   "name": "mine-raider",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Wolfenstein 3D-style raycasting game in vanilla JS + HTML5 Canvas",
   "main": "server.js",
   "scripts": {

@@ -1,7 +1,7 @@
 # ⛏️ Mine Raider – Roadmap
 
 > Živ dokument sledujc plnovan funkce a npady pro dalš rozvoj hry.  
-> Posledn aktualizace: **2026-03-29**  verze **0.6.0**  24 features (15 hotovo, 9 zbv)
+> Posledn aktualizace: **2026-03-29**  verze **0.6.0**  28 features (15 hotovo, 13 zbývá)
 
 ---
 
@@ -44,21 +44,18 @@
 
 ## 🔝 Plánované features
 
-
-
 ### 4. 🪤 Pasti (traps)
 - **Spike Trap** – dlaždice na zemi, spustí se při přechodu (animovaný overlay na podlaze)
 - **Rolling Boulder** – pohybující se objekt po chodbě, inspirováno Indiana Jones
 - Viditelné varování (jiná barva dlaždice) na nižší obtížnosti
 
-
 ### 8. 🎒 Inventář & použitelné předměty
-- Hráč může nosit až 3 lékárničky a použít je klávesou `F`
+- Hráč může nosit až 3 lékárničky a použít je klávesou
 - Nový předmět: **Dynamit** — odpálí blok zdi na dálku (max 2 ks)
 - HUD ikonky inventáře vpravo dole
 
 ### 9. 🧱 Tajné stěny (Secret Walls)
-- Speciální kamenné zdi, které vypadají normálně, ale jsou interaktivní (`E`)
+- Speciální kamenné zdi, které vypadají normálně, ale jsou interaktivní
 - Za tajnou stěnou může být skrytá místnost s bonusovým pokladem nebo klíčem
 - Editor: tile "Secret Wall" v paletě, vizuálně rozlišený jen v editoru
 
@@ -67,19 +64,40 @@
 - Zobrazí: název dalšího levelu, skóre za aktuální level, čas průchodu
 - Postupně se odkrývající příběh o záhadách starých dolů (několik řádků textu)
 
+### 15. ⚔️ Systém zbraní (Weapon System)
+- **First-person view zbraně** — krumpáč viditelný z pohledu hráče, animace máchnutí při útoku
+- **Krumpáč** (výchozí) — melee, neomezené použití, stávající mechanika
+- **Válečný krumpáč / Kladivo** — silnější melee zbraň (2× damage, pomalejší swing), pickup
+- **Kuše** — ranged hit-scan, poškodí prvního nepřítele v linii; omezená munice (šipky jako pickup)
+- **Dynamit** — vhozený objekt, po 2 s exploduje, poškodí vše v poloměru a rozbije dřevěné zdi; omezené zásoby
+- Přepínání zbraní klávesami `1–4`; HUD indikátor zvolené zbraně + munice
+- Nové SFX pro každou zbraň; pickupy munice/zbraní jako entity v mapě
 
+### 16. 🏹 Ranged nepřátelé
+- **Skeleton Archer** — střílí šípové projektily po hráči, pomalá kadence, nízké HP
+- **Mine Goblin** — hází kameny / výbušniny, střední kadence, uhýbá
+- Projektily jako pohybující se entity s kolizí (ray-vs-sprite nebo AABB)
+- Nové textury v `textures.js`, nové SFX v `audio.js`
 
-### 15. 🏹 Ranged zbraň (Kuše / Dynamit)
-- Sekundární zbraň přepínatelná číselnými klávesami vedle pickaxe
-- **Kuše** — hit-scan projektil přes `raycaster.js`, poškodí prvního nepřítele v linii
-- **Dynamit** — vhozený objekt, po 2 s exploduje, poškodí vše v poloměru a rozbije dřevěné zdi
-- Náboje/zásoby jako pickup, nový SFX, HUD indikátor zvolené zbraně
-
-### 16. 👹 Boss nepřítel na finálním levelu
-- Speciální `T.BOSS` typ v `entities.js` — vysoké HP, unikátní vzor útoku (nabíhání + ranged projektil)
+### 17. 👹 Boss nepřátelé
+- Speciální `T.BOSS_*` typy v `entities.js` — vysoké HP, unikátní vzory útoku
+- 3–4 různí bossové (jeden na konci každé kampaně):
+  - **Mine Foreman** — velký melee boss, nabíhá + ground slam
+  - **Crystal Golem** — krystalový obr, střílí krystalové střepy, odolný proti melee
+  - **Shadow Wraith** — ghostový boss, teleportuje se, AoE dark wave
+  - **Deep Dweller** — finální boss, kombinace melee + ranged + summon minions
 - Větší sprite generovaný v `textures.js` (2× standardní výška)
-- Boss HP bar v `drawHUD` (zobrazí se jen na Level 5)
-- Vítězná fanfára v `audio.js` po jeho porážce — dává kampani uspokojivé vyvrcholení
+- Boss HP bar v `drawHUD`; vítězná fanfára po porážce
+
+### 18. 🗺️ Kampaňový systém (Campaign System)
+- Inspirováno Wolf3D (6 epizod) — Mine Raider bude mít **4 kampaně** (epizody)
+- Každá kampaň = 5–8 levelů s vlastním vizuálním tématem a postupně rostoucí obtížností
+- Kampaň 1: Opuštěný důl (stávající levely — tutorial)
+- Kampaň 2: Zaplavené šachty (nové tile typy? water floor)
+- Kampaň 3: Krystalové jeskyně (crystal heavy, golem boss)
+- Kampaň 4: Prokleté hlubiny (nejtěžší, finální boss)
+- Každá kampaň končí boss fightem
+- Menu výběru kampaně; progress persistovaný v localStorage
 
 ---
 
@@ -89,8 +107,6 @@ Nápady v ranější fázi nebo vyžadující větší diskusi:
 
 | Nápad | Poznámka |
 |---|---|
-| **Procedurálně generovaná kampaň** | Generátor map + pravidla pro rozmístění nepřátel/pokladů → nekonečný "roguelite" mód |
-| **Ranged nepřátelé** | Skeleton Archer / Mine Goblin střílí projektily — vyžaduje ray-vs-sprite kolize |
 | **Pushwalls** (Wolf3D Easter egg) | Speciální zeď, která se dá posunout — odkryje tajnou chodbu |
 | **Multiplayer (local co-op)** | Dva hráči na jedné klávesnici (split-screen) — velmi náročné na renderer |
 | **WebSocket multiplayer** | Node.js server jako game server, 2–4 hráči online — velký projekt |
@@ -111,24 +127,27 @@ Sprint 1 ✅ (hotovo):
   → #1  Svítilna / dynamické osvětlení
   → #6  High score (localStorage, per-difficulty best score)
 
-Sprint 2 (gameplay hloubka):
-  → #3  Výbušné sudy ✅
-  → #4  Pasti
+Sprint 2 ✅ (hotovo):
+  → #3  Výbušné sudy
+  → #13 Ambientní soundtrack
+  → #7  Automap / Fog of War
 
-Sprint 3 (polishing & atmosfra):
-  → #13 Ambientn soundtrack ✅
-  → #7  Automap / Fog of War ✅
-  → #10 Přběhov obrazovky
+Sprint 3 (zbraně):
+  → #15 Systém zbraní (first-person view, krumpáč, kladivo, kuše, dynamit)
 
-Sprint 4 (zbraně & tajemství):
-  → #15 Ranged zbraň (kuše / dynamit)
-  → #8  Inventář
+Sprint 4 (nepřátelé & pasti):
+  → #16 Ranged nepřátelé (Skeleton Archer, Mine Goblin)
+  → #4  Pasti (spike trap, rolling boulder)
+
+Sprint 5 (polishing & příběh):
+  → #10 Mezi-levelové obrazovky
   → #9  Tajné stěny
+  → #8  Inventář
 
-Sprint 5 (endgame & boss):
-  → #16 Boss nepřítel (Level 5)
+Sprint 6 (endgame):
+  → #17 Boss nepřátelé (4 bossové)
+  → #18 Kampaňový systém (4 epizody po 5–8 levelech)
   → Rozšíření high score / achievementy
-  → Procedurální kampaň (roguelite mód)
 ```
 
 ---

@@ -2,7 +2,7 @@
 
 import { SCREEN_W, SCREEN_H, T, FOV, HALF_FOV } from './config.js';
 import { castRays } from './raycaster.js';
-import { getTexture, getTextureSize } from './textures.js';
+import { getTexture, getTextureSize, getWeaponTexture } from './textures.js';
 import { renderSprites } from './sprites.js';
 import { drawHUD } from './hud.js';
 
@@ -184,15 +184,62 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
     // ── Sprites ──
     renderSprites(ctx, entities, player, depthBuffer, lightingState);
 
-    // ── Attack overlay ──
-    if (player.attackTimer > 0.2) {
-        ctx.fillStyle = 'rgba(255,200,50,0.15)';
+    // ── First-person weapon ──
+    {
+        const weaponId = player.currentWeapon || 'pickaxe';
+        const weaponTex = getWeaponTexture(weaponId);
+        const wScale = 3.5;                // scale factor for weapon sprite
+        const wW = weaponTex.width * wScale;
+        const wH = weaponTex.height * wScale;
+
+        // Base position: bottom-center-right of screen
+        let baseX = SCREEN_W * 0.52 - wW / 2;
+        let baseY = SCREEN_H - wH + 20;
+
+        // Idle bob (subtle, synced to player walk)
+        baseX += Math.sin(player.bobPhase * 0.5) * 4;
+        baseY += Math.abs(Math.sin(player.bobPhase)) * 5;
+
+        // Swing animation
+        let swingAngle = 0;
+        let swingOX = 0, swingOY = 0;
+        if (player.attackTimer > 0) {
+            // attackTimer goes from 0.4 → 0 during attack
+            const t = 1 - player.attackTimer / 0.4;  // 0 → 1
+            if (t < 0.35) {
+                // Wind up: pull back
+                const p = t / 0.35;
+                swingAngle = -0.3 * p;
+                swingOX = 20 * p;
+                swingOY = -10 * p;
+            } else if (t < 0.6) {
+                // Strike: swing forward fast
+                const p = (t - 0.35) / 0.25;
+                swingAngle = -0.3 + 1.0 * p;
+                swingOX = 20 - 50 * p;
+                swingOY = -10 + 30 * p;
+            } else {
+                // Recovery: return to rest
+                const p = (t - 0.6) / 0.4;
+                swingAngle = 0.7 * (1 - p);
+                swingOX = -30 * (1 - p);
+                swingOY = 20 * (1 - p);
+            }
+        }
+
+        ctx.save();
+        const pivotX = baseX + wW * 0.6 + swingOX;
+        const pivotY = baseY + wH * 0.85 + swingOY;
+        ctx.translate(pivotX, pivotY);
+        ctx.rotate(swingAngle);
+        ctx.drawImage(weaponTex, -wW * 0.6, -wH * 0.85, wW, wH);
+        ctx.restore();
+    }
+
+    // ── Attack flash (brief golden tint at peak of swing) ──
+    if (player.attackTimer > 0.15 && player.attackTimer < 0.3) {
+        ctx.fillStyle = 'rgba(255,200,50,0.08)';
         ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
-        ctx.fillStyle = '#ffd700';
-        ctx.font = 'bold 48px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('⛏', SCREEN_W / 2 + Math.sin(player.attackTimer * 20) * 30,
-                     SCREEN_H * 0.7);
     }
 
     // ── Damage flash ──

@@ -68,10 +68,14 @@ export const T = {
     MINE_LIGHT:   29, // small mine lamp – emits ambient light
     MINE_CART:    30, // decorative mine cart – blocks movement
     PICKAXE_DECOR:31, // decorative leaning pickaxe
+    WARHAMMER:    32, // warhammer weapon pickup (melee, 2x damage)
+    CROSSBOW:     33, // crossbow weapon pickup (ranged)
+    AMMO_BOLT:    34, // crossbow bolt ammo pickup
+    AMMO_DYNAMITE:35, // dynamite ammo pickup
 };
 
 export const WALL_TYPES = new Set([T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.DOOR, T.DOOR_RED, T.DOOR_BLUE]);
-export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.EXIT, T.TORCH, T.HEALTH, T.SPIDER, T.GHOST, T.PILLAR, T.HEALTH_SMALL, T.KEY_RED, T.KEY_BLUE, T.FLASHLIGHT, T.BARREL, T.MINE_LIGHT, T.MINE_CART, T.PICKAXE_DECOR]);
+export const ENTITY_TYPES = new Set([T.PLAYER, T.GOLD, T.GEM, T.BAT, T.SKELETON, T.EXIT, T.TORCH, T.HEALTH, T.SPIDER, T.GHOST, T.PILLAR, T.HEALTH_SMALL, T.KEY_RED, T.KEY_BLUE, T.FLASHLIGHT, T.BARREL, T.MINE_LIGHT, T.MINE_CART, T.PICKAXE_DECOR, T.WARHAMMER, T.CROSSBOW, T.AMMO_BOLT, T.AMMO_DYNAMITE]);
 
 // Locked door helpers
 export const LOCKED_DOOR_TYPES = new Set([T.DOOR_RED, T.DOOR_BLUE]);
@@ -85,6 +89,21 @@ export const WALL_HP = { [T.WOOD]: 3 };
 // Barrel explosion
 export const BARREL_EXPLOSION_RADIUS = 2.5;
 export const BARREL_EXPLOSION_DAMAGE = 30;
+
+// Weapon stats (damage, cooldown, ammo capacity)
+export const WEAPON_STATS = {
+    pickaxe:  { damage: 1,  cooldown: 0.4, ammoMax: -1, name: 'tWeaponPickaxe'  },
+    warhammer:{ damage: 2,  cooldown: 0.6, ammoMax: -1, name: 'tWeaponWarhammer'},
+    crossbow: { damage: 1.5,cooldown: 0.8, ammoMax: 20, name: 'tWeaponCrossbow' },
+    dynamite: { damage: 2,  cooldown: 1.2, ammoMax: 5,  name: 'tWeaponDynamite' },
+};
+
+// Dynamite physics
+export const DYNAMITE_THROW_DURATION = 0.5;   // max hold duration
+export const DYNAMITE_MAX_DISTANCE = 4.0;     // max tiles
+export const DYNAMITE_FUSE_TIME = 2.0;        // sec before explosion
+export const DYNAMITE_EXPLOSION_RADIUS = 2.8; // tiles
+export const DYNAMITE_EXPLOSION_DAMAGE = 40;  // base damage
 
 // i18n keys for tile labels (resolved at runtime via t())
 export const TILE_LABEL_KEYS = {
@@ -117,6 +136,10 @@ export const TILE_LABEL_KEYS = {
     [T.MINE_LIGHT]:   'tMineLight',
     [T.MINE_CART]:    'tMineCart',
     [T.PICKAXE_DECOR]:'tPickaxeDecor',
+    [T.WARHAMMER]:    'tWarhammer',
+    [T.CROSSBOW]:     'tCrossbow',
+    [T.AMMO_BOLT]:    'tAmmoBolt',
+    [T.AMMO_DYNAMITE]:'tAmmoDynamite',
 };
 
 export const TILE_COLORS = {
@@ -149,4 +172,8 @@ export const TILE_COLORS = {
     [T.MINE_LIGHT]:   '#ddaa33',
     [T.MINE_CART]:    '#777777',
     [T.PICKAXE_DECOR]:'#996633',
+    [T.WARHAMMER]:    '#aa5555',
+    [T.CROSSBOW]:     '#887722',
+    [T.AMMO_BOLT]:    '#ffcc44',
+    [T.AMMO_DYNAMITE]:'#cc5533',
 };

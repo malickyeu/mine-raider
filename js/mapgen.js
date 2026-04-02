@@ -360,10 +360,10 @@ export function generateMap({
     // Difficulty table (base values per 8 rooms)
     const scale = Math.max(1, rooms.length / 8);
     const DS = {
-        easy:   { bats:2, skeletons:0, spiders:1, ghosts:0, gold:5, gems:3, health:3, healthSmall: Math.ceil(rooms.length*0.5), torches:rooms.length, barrels:2, mineLights:Math.ceil(rooms.length*0.6), mineCarts:2, pickaxes:2 },
-        normal: { bats:4, skeletons:2, spiders:3, ghosts:1, gold:4, gems:2, health:2, healthSmall: Math.ceil(rooms.length*0.5), torches:Math.ceil(rooms.length*0.8), barrels:3, mineLights:Math.ceil(rooms.length*0.4), mineCarts:1, pickaxes:1 },
-        hard:   { bats:5, skeletons:3, spiders:5, ghosts:3, gold:3, gems:2, health:1, healthSmall: Math.ceil(rooms.length*0.5), torches:Math.ceil(rooms.length*0.5), barrels:4, mineLights:Math.ceil(rooms.length*0.3), mineCarts:1, pickaxes:1 },
-    }[difficulty] ?? { bats:4, skeletons:2, spiders:3, ghosts:1, gold:4, gems:2, health:2, healthSmall: Math.ceil(rooms.length*0.5), torches:Math.ceil(rooms.length*0.8), barrels:3, mineLights:Math.ceil(rooms.length*0.4), mineCarts:1, pickaxes:1 };
+        easy:   { bats:2, skeletons:0, spiders:1, ghosts:0, gold:5, gems:3, health:3, healthSmall: Math.ceil(rooms.length*0.5), torches:rooms.length, barrels:2, mineLights:Math.ceil(rooms.length*0.6), mineCarts:2, pickaxes:2, warhammerCount:1, crossbowCount:0, ammoBoltCount:0, ammoDynCount:0 },
+        normal: { bats:4, skeletons:2, spiders:3, ghosts:1, gold:4, gems:2, health:2, healthSmall: Math.ceil(rooms.length*0.5), torches:Math.ceil(rooms.length*0.8), barrels:3, mineLights:Math.ceil(rooms.length*0.4), mineCarts:1, pickaxes:1, warhammerCount:1, crossbowCount:1, ammoBoltCount:2, ammoDynCount:1 },
+        hard:   { bats:5, skeletons:3, spiders:5, ghosts:3, gold:3, gems:2, health:1, healthSmall: Math.ceil(rooms.length*0.5), torches:Math.ceil(rooms.length*0.5), barrels:4, mineLights:Math.ceil(rooms.length*0.3), mineCarts:1, pickaxes:1, warhammerCount:1, crossbowCount:1, ammoBoltCount:3, ammoDynCount:2 },
+    }[difficulty] ?? { bats:4, skeletons:2, spiders:3, ghosts:1, gold:4, gems:2, health:2, healthSmall: Math.ceil(rooms.length*0.5), torches:Math.ceil(rooms.length*0.8), barrels:3, mineLights:Math.ceil(rooms.length*0.4), mineCarts:1, pickaxes:1, warhammerCount:1, crossbowCount:1, ammoBoltCount:2, ammoDynCount:1 };
 
     // ── Final entity counts (base × scale, clamped) ──
     const C = {
@@ -380,6 +380,10 @@ export function generateMap({
         mineLights: Math.max(1, Math.round(DS.mineLights * scale)),
         mineCarts:  Math.min(4, Math.max(1, Math.round(DS.mineCarts * scale))),
         pickaxes:   Math.min(4, Math.max(1, Math.round(DS.pickaxes * scale))),
+        warhammer:  DS.warhammerCount,
+        crossbow:   DS.crossbowCount,
+        ammoBolt:   DS.ammoBoltCount,
+        ammoDyn:    DS.ammoDynCount,
     };
 
     // ── Target score scaling (applied once to final counts) ──
@@ -419,6 +423,11 @@ export function generateMap({
     placeEntities(T.MINE_LIGHT,   C.mineLights,  allEmpty);
     placeEntities(T.MINE_CART,    C.mineCarts,   nonBlockEmpty);
     placeEntities(T.PICKAXE_DECOR,C.pickaxes,    nw);
+    // ── Weapon & ammo pickups (placed in non-start rooms, near walls) ──
+    placeEntities(T.WARHAMMER,    C.warhammer,   nonStartEmpty);
+    placeEntities(T.CROSSBOW,     C.crossbow,    nonStartEmpty);
+    placeEntities(T.AMMO_BOLT,    C.ammoBolt,    nw);
+    placeEntities(T.AMMO_DYNAMITE,C.ammoDyn,     nw);
     placeEntities(T.BAT,          C.bats,        nonStartEmpty);
     placeEntities(T.SKELETON,     C.skeletons,   nonStartEmpty);
     placeEntities(T.SPIDER,       C.spiders,     nonStartEmpty);

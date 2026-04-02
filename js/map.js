@@ -43,11 +43,12 @@ function level2() {
     const W = 24, H = 24;
     const S = T.STONE, D = T.WOOD, O = T.ORE, Y = T.MOSSY, _ = T.EMPTY;
     const P = T.PLAYER, G = T.GOLD, M = T.GEM, B = T.BAT, K = T.SKELETON, E = T.EXIT, R = T.TORCH, L = T.HEALTH, I = T.SPIDER;
+    const Wh = T.WARHAMMER;
     // prettier-ignore
     const tiles = [
         [S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S],
         [S,P,_,_,_,_,Y,_,_,_,S,_,_,_,_,_,Y,_,_,_,_,_,_,S],
-        [S,_,_,_,_,_,Y,_,G,_,S,_,_,_,_,_,Y,_,_,_,_,_,_,S],
+        [S,_,_,_,_,_,Y,_,G,_,S,_,_,_,_,_,Y,Wh,_,_,_,_,_,S],
         [S,_,_,_,_,_,Y,_,_,_,O,_,_,_,_,_,_,_,_,S,S,S,_,S],
         [S,_,_,S,S,_,_,_,_,_,S,_,_,Y,Y,Y,_,_,_,S,G,S,_,S],
         [S,_,_,S,R,_,_,_,_,_,S,_,_,Y,G,Y,_,_,_,_,_,_,_,S],
@@ -77,6 +78,7 @@ function level3() {
     const W = 24, H = 24;
     const S = T.STONE, D = T.WOOD, C = T.CRYSTAL, N = T.IRON, _ = T.EMPTY;
     const P = T.PLAYER, G = T.GOLD, M = T.GEM, B = T.BAT, K = T.SKELETON, E = T.EXIT, R = T.TORCH, L = T.HEALTH, I = T.SPIDER, H_ = T.GHOST;
+    const Xb = T.CROSSBOW, Ab = T.AMMO_BOLT;
     // prettier-ignore
     const tiles = [
         [N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N],
@@ -89,7 +91,7 @@ function level3() {
         [N,_,_,_,_,_,N,M,_,_,_,_,_,_,_,N,N,D,N,N,N,N,_,N],
         [N,_,_,K,_,_,N,_,_,_,_,_,_,_,_,N,_,_,_,_,R,N,_,N],
         [N,N,D,N,N,_,N,_,_,C,_,_,_,_,_,N,_,K,_,_,_,N,_,N],
-        [N,_,_,_,_,_,_,_,_,C,_,_,N,N,_,D,_,_,_,_,_,N,_,N],
+        [N,_,_,_,_,_,_,_,_,C,_,_,N,N,_,D,Xb,Ab,_,_,_,N,_,N],
         [N,_,G,_,L,_,_,_,_,C,_,_,N,_,_,N,_,_,_,G,_,N,_,N],
         [N,_,_,_,_,C,C,C,_,_,_,_,D,_,_,N,_,_,_,_,_,N,_,N],
         [N,_,_,H_,_,C,M,C,_,_,_,_,N,_,_,N,N,N,D,N,N,N,_,N],
@@ -112,6 +114,7 @@ function level4() {
     const S = T.STONE, D = T.WOOD, O = T.ORE, Y = T.MOSSY, C = T.CRYSTAL, N = T.IRON, _ = T.EMPTY;
     const P = T.PLAYER, G = T.GOLD, M = T.GEM, B = T.BAT, K = T.SKELETON, E = T.EXIT, R = T.TORCH, L = T.HEALTH, I = T.SPIDER, H_ = T.GHOST;
     const DR = T.DOOR_RED, DB = T.DOOR_BLUE, KR = T.KEY_RED, KB = T.KEY_BLUE;
+    const Ab = T.AMMO_BOLT, Ad = T.AMMO_DYNAMITE;
     // prettier-ignore
     const tiles = [
         [S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S],
@@ -126,7 +129,7 @@ function level4() {
         [S,S,D,S,S,_,_,_,_,_,N,_,H_,_,_,_,N,_,_,_,_,_,_,_,_,_,_,S],
         [S,_,_,_,_,_,_,_,_,_,N,_,_,_,M,_,N,_,_,S,S,S,S,DR,S,S,S,S],
         [S,_,G,_,_,_,_,_,_,_,N,_,_,_,_,_,N,_,_,S,_,_,_,_,_,_,R,S],
-        [S,_,_,_,_,C,C,C,_,_,N,N,D,N,N,N,N,_,_,S,_,_,_,_,_,_,_,S],
+        [S,_,_,_,_,C,C,C,_,_,N,N,D,N,N,N,N,_,_,S,Ab,Ad,_,_,_,_,_,S],
         [S,_,_,_,_,C,L,C,_,_,_,_,_,_,_,_,_,_,_,S,_,_,K,_,_,_,_,S],
         [S,_,_,B,_,C,_,C,_,_,_,_,_,_,_,_,_,_,_,D,_,_,_,_,_,_,_,S],
         [S,_,_,_,_,_,_,_,_,_,O,O,O,_,_,_,_,_,_,S,_,_,_,_,G,_,_,S],
@@ -150,10 +153,11 @@ function level5() {
     const W = 30, H = 30;
     const S = T.STONE, D = T.WOOD, O = T.ORE, Y = T.MOSSY, C = T.CRYSTAL, N = T.IRON, _ = T.EMPTY;
     const P = T.PLAYER, G = T.GOLD, M = T.GEM, B = T.BAT, K = T.SKELETON, E = T.EXIT, R = T.TORCH, L = T.HEALTH, I = T.SPIDER, H_ = T.GHOST;
+    const Ab = T.AMMO_BOLT, Ad = T.AMMO_DYNAMITE;
     // prettier-ignore
     const tiles = [
         [N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N],
-        [N,P,_,_,_,N,_,_,_,_,_,C,_,_,_,N,_,_,_,_,_,_,_,N,_,_,_,_,_,N],
+        [N,P,_,_,_,N,_,_,_,_,_,C,_,_,_,N,Ab,Ad,_,_,_,_,_,N,_,_,_,_,_,N],
         [N,_,_,_,_,N,_,G,_,_,_,C,_,_,_,D,_,_,_,_,_,_,_,N,_,_,_,_,_,N],
         [N,_,_,_,_,D,_,_,_,_,_,C,_,_,_,N,_,_,N,N,N,_,_,N,_,N,N,N,_,N],
         [N,_,_,_,_,N,_,_,_,C,C,C,_,K,_,N,_,_,N,M,_,_,_,D,_,_,_,N,_,N],
@@ -164,7 +168,7 @@ function level5() {
         [N,_,_,_,_,_,_,_,N,_,_,_,_,_,_,N,_,_,_,_,_,_,_,_,_,_,_,_,_,N],
         [N,N,N,N,N,D,N,_,N,_,H_,_,M,_,_,D,_,_,O,O,O,O,O,_,_,_,_,_,N],
         [N,_,_,_,_,_,N,_,N,_,_,_,_,_,_,N,_,_,O,_,_,_,O,_,_,_,_,_,_,N],
-        [N,_,G,_,_,_,N,_,N,N,N,N,N,N,N,N,_,_,O,_,G,_,O,_,_,Y,Y,Y,Y,N],
+        [N,_,G,_,_,_,N,_,N,N,N,N,N,N,N,N,Ab,_,O,_,G,_,O,_,_,Y,Y,Y,Y,N],
         [N,_,_,_,L,_,N,_,_,_,_,_,_,_,_,_,_,_,O,_,_,_,O,_,_,Y,_,_,_,N],
         [N,_,_,_,_,_,N,_,_,_,_,_,_,_,_,_,_,_,O,O,D,O,O,_,_,Y,_,G,_,N],
         [N,_,B,_,_,_,D,_,_,_,Y,Y,Y,D,Y,Y,_,_,_,_,_,_,_,_,_,Y,_,_,_,N],
@@ -172,7 +176,7 @@ function level5() {
         [N,_,_,_,I,_,N,_,_,_,Y,_,M,_,_,Y,_,_,C,C,C,D,C,C,_,Y,_,H_,_,N],
         [N,N,N,N,N,N,N,_,_,_,Y,_,_,_,_,Y,_,_,C,_,_,_,_,C,_,Y,_,_,_,N],
         [N,_,_,_,_,_,_,_,_,_,Y,_,K,_,L,Y,_,_,C,_,M,_,_,C,_,Y,Y,Y,Y,N],
-        [N,_,G,_,_,_,_,_,_,_,Y,_,_,_,_,Y,_,_,C,_,_,_,_,C,_,_,_,_,_,N],
+        [N,_,G,_,_,_,_,_,_,_,Y,_,_,_,_,Y,_,_,C,_,_,_,_,C,Ad,_,_,_,_,N],
         [N,_,_,_,_,_,_,_,_,_,Y,Y,Y,Y,Y,Y,_,_,C,_,_,K,_,C,_,_,_,_,_,N],
         [N,_,_,_,K,_,_,_,_,_,_,_,_,_,_,_,_,_,C,C,C,C,C,C,_,_,_,_,_,N],
         [N,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,N],

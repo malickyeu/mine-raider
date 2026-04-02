@@ -196,13 +196,40 @@ export function sfxFlashlightPickup() {
 }
 
 export function sfxExplosion() {
-    // deep boom + rumble + debris
-    playTone(60, 0.4, 'sawtooth', 0.18);
-    playTone(45, 0.5, 'sine', 0.15);
-    setTimeout(() => playTone(80, 0.25, 'sawtooth', 0.14), 50);
-    setTimeout(() => playTone(120, 0.15, 'square', 0.10), 100);
-    setTimeout(() => playTone(40, 0.35, 'sine', 0.08), 200);
-}
+     // deep boom + rumble + debris
+     playTone(60, 0.4, 'sawtooth', 0.18);
+     playTone(45, 0.5, 'sine', 0.15);
+     setTimeout(() => playTone(80, 0.25, 'sawtooth', 0.14), 50);
+     setTimeout(() => playTone(120, 0.15, 'square', 0.10), 100);
+     setTimeout(() => playTone(40, 0.35, 'sine', 0.08), 200);
+ }
+
+ export function sfxCrossbowShot() {
+     // quiet twang + whoosh
+     playTone(280, 0.04, 'sine', 0.08);
+     setTimeout(() => playTone(400, 0.08, 'sine', 0.06), 20);
+ }
+
+ export function sfxDynamiteThrow() {
+     // heavy grunt + wind-up
+     playTone(180, 0.12, 'sine', 0.12);
+     setTimeout(() => playTone(220, 0.15, 'sawtooth', 0.10), 80);
+ }
+
+ export function sfxDynamiteExplode() {
+     // louder + deeper than barrel
+     playTone(50, 0.5, 'sawtooth', 0.20);
+     playTone(40, 0.6, 'sine', 0.18);
+     setTimeout(() => playTone(90, 0.28, 'sawtooth', 0.15), 60);
+     setTimeout(() => playTone(140, 0.18, 'square', 0.12), 120);
+     setTimeout(() => playTone(35, 0.40, 'sine', 0.09), 220);
+ }
+
+ export function sfxWeaponSwitch() {
+     // soft click + tone shift
+     playTone(600, 0.03, 'sine', 0.06);
+     setTimeout(() => playTone(800, 0.05, 'sine', 0.05), 25);
+ }
 
 // ─────────────────────────────────────────────
 // ── Ambient Soundtrack ──

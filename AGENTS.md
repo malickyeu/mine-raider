@@ -1,5 +1,5 @@
 # AGENTS.md – Mine Raider Codebase Guide
-> Version **0.6.0** · Last updated 2026-03-29
+> Version **0.7.0** · Last updated 2026-04-02
 
 ## Project Overview
 Wolfenstein 3D-style raycasting game in **vanilla JavaScript + HTML5 Canvas**. No bundler, no game engine, no external assets — textures and audio are all procedurally generated at runtime.
@@ -126,6 +126,23 @@ Language persisted under `localStorage` key `mine_raider_lang`; map saved under 
 4. `renderSprites()` — billboard sprites depth-clipped against `depthBuffer`; exploding barrels use explosion texture
 5. `ctx.restore()` — remove bob/shake offset
 6. `drawHUD()` — health bar, score, minimap (with door state lines), level name
+
+### Weapon System (`config.js`, `entities.js`, `main.js`, `renderer.js`, `hud.js`, `textures.js`)
+Four weapons selectable via keys `1–4`; SPACE fires/swings:
+- **Pickaxe** (default, unlimited): melee 1× damage, 0.4 s cooldown
+- **Warhammer** (`T.WARHAMMER` pickup): melee 2× damage, 0.6 s cooldown
+- **Crossbow** (`T.CROSSBOW` pickup + `T.AMMO_BOLT` ammo): hit-scan with full wall LOS check; `WEAPON_STATS.crossbow.damage = 1.5` → 2 `takeDamage()` calls
+- **Dynamite** (`T.AMMO_DYNAMITE` ammo auto-unlocks weapon): hold SPACE to charge throw power (`player.weaponThrowTimer` increments in `Player.update()`), release to throw `DynamiteThrown` entity; 2 s fuse then `triggerDynamiteExplosion()` in `main.js`
+
+Key patterns:
+- `player.weapons[id] = { owned, ammo }` — ammo = -1 means unlimited
+- `player.currentWeapon` — active weapon id string; switched with keys 1–4 only if `owned`
+- `player.weaponThrowTimer` — incremented exclusively in `entities.js Player.update()`; **do not also increment in main.js** (was a double-count bug)
+- `throwDynamite(power)` always resets `player.weaponThrowTimer = 0` even on no ammo to prevent infinite re-trigger
+- FP weapon textures drawn in `renderer.js`; charge-up animation via `player.weaponThrowTimer > 0`; swing via `player.attackTimer > 0`
+- Dynamite charge bar rendered in `hud.js` when `currentWeapon === 'dynamite' && weaponThrowTimer > 0`
+- Campaign map pickups: Level 2 → Warhammer; Level 3 → Crossbow + Bolts; Level 4 → Bolts + Dynamite; Level 5 → more ammo
+- Generated maps (`mapgen.js`): `C.warhammer/crossbow/ammoBolt/ammoDyn` counts per difficulty
 
 ### Ambient Soundtrack (`audio.js`, `main.js`)
 Procedural in-game ambient track; no audio files:

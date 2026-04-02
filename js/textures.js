@@ -829,6 +829,170 @@ export function getPillarTexture() {
     return pillarCache.tex;
 }
 
+// ── Pickup sprites for weapon / ammo pickups ──
+// All use standard 32×32 canvas so they render at the same scale as other sprites.
+function drawSpriteWarhammer() {
+    const c = createCanvas(32, 32); const ctx = c.getContext('2d');
+    // Handle (lower half, centered)
+    ctx.fillStyle = '#6B4226';
+    ctx.fillRect(14, 13, 4, 17);
+    ctx.fillStyle = '#555';
+    for (let i = 0; i < 2; i++) ctx.fillRect(13, 15 + i * 7, 6, 2); // grip bands
+    // Head (upper portion)
+    ctx.fillStyle = '#5A5A5A';
+    ctx.fillRect(5, 3, 22, 12);
+    ctx.fillStyle = '#777';
+    ctx.fillRect(7, 5, 14, 4);  // top face highlight
+    ctx.fillStyle = '#888';
+    ctx.fillRect(25, 5, 2, 8);  // side shine
+    return c;
+}
+
+function drawSpriteCrossbow() {
+    const c = createCanvas(32, 32); const ctx = c.getContext('2d');
+    // Stock (horizontal beam, vertically centred)
+    ctx.fillStyle = '#7a5230';
+    ctx.fillRect(4, 14, 24, 5);
+    // Bow limbs (vertical, at left end)
+    ctx.strokeStyle = '#5a3a10'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(5, 12); ctx.lineTo(5, 5);  ctx.stroke(); // top limb
+    ctx.beginPath(); ctx.moveTo(5, 22); ctx.lineTo(5, 27); ctx.stroke(); // bottom limb
+    // Bowstring
+    ctx.strokeStyle = '#cccccc'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(5, 5); ctx.lineTo(16, 17); ctx.lineTo(5, 27); ctx.stroke();
+    // Bolt on stock
+    ctx.fillStyle = '#aaaaaa';
+    ctx.fillRect(16, 16, 12, 2);
+    ctx.fillStyle = '#888888';
+    ctx.beginPath(); ctx.moveTo(28, 15); ctx.lineTo(32, 17); ctx.lineTo(28, 19); ctx.fill();
+    return c;
+}
+
+function drawSpriteAmmoBolt() {
+    const c = createCanvas(32, 32); const ctx = c.getContext('2d');
+    // 3 crossbow bolts bundled, centered in canvas
+    for (let i = 0; i < 3; i++) {
+        const y = 10 + i * 5;
+        // Shaft
+        ctx.fillStyle = '#8B5E3C';
+        ctx.fillRect(4, y, 20, 2);
+        // Metal tip
+        ctx.fillStyle = '#aaaaaa';
+        ctx.beginPath(); ctx.moveTo(24, y - 1); ctx.lineTo(28, y + 1); ctx.lineTo(24, y + 3); ctx.fill();
+        // Feather/fletch
+        ctx.fillStyle = '#cc9944';
+        ctx.fillRect(2, y, 4, 2);
+    }
+    // Binding twine
+    ctx.strokeStyle = '#888888'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(11, 10); ctx.lineTo(11, 24); ctx.stroke();
+    return c;
+}
+
+function drawSpriteAmmoDynamite() {
+    const c = createCanvas(32, 32); const ctx = c.getContext('2d');
+    // 2 dynamite sticks side by side, centered
+    for (let i = 0; i < 2; i++) {
+        const x = 6 + i * 13;
+        // Body
+        ctx.fillStyle = '#cc4422';
+        ctx.fillRect(x, 9, 9, 17);
+        // Cap
+        ctx.fillStyle = '#aa3311';
+        ctx.fillRect(x, 9, 9, 4);
+        // Label stripe
+        ctx.fillStyle = '#ffeecc';
+        ctx.fillRect(x + 1, 16, 7, 3);
+        // Fuse
+        ctx.strokeStyle = '#777777'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(x + 4, 9); ctx.lineTo(x + 6, 3); ctx.stroke();
+    }
+    // Binding wire
+    ctx.strokeStyle = '#888888'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(6, 17); ctx.lineTo(27, 17); ctx.stroke();
+    return c;
+}
+
+// ── FP weapon textures: crossbow ──
+function drawWeaponCrossbow() {
+    const W = 128, H = 128;
+    const c = createCanvas(W, H);
+    const ctx = c.getContext('2d');
+
+    ctx.save();
+    ctx.translate(W * 0.5, H * 0.78);
+
+    // Stock (lower body)
+    ctx.fillStyle = '#7a5230';
+    ctx.fillRect(-8, -10, 50, 14);
+    // Wood grain
+    ctx.strokeStyle = 'rgba(50,30,10,0.4)'; ctx.lineWidth = 0.8;
+    for (let i = 0; i < 4; i++) {
+        ctx.beginPath(); ctx.moveTo(-6, -8 + i * 3); ctx.lineTo(40, -7 + i * 3); ctx.stroke();
+    }
+
+    // Trigger guard
+    ctx.fillStyle = '#555';
+    ctx.fillRect(10, -10, 3, 18);
+
+    // Bow limbs (perpendicular to stock)
+    ctx.fillStyle = '#5a3a10';
+    ctx.fillRect(-14, -38, 7, 60);  // top limb
+    // String
+    ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-10, -38);
+    ctx.lineTo(-5, -16);
+    ctx.lineTo(-10, 22);
+    ctx.stroke();
+
+    // Bolt on track
+    ctx.fillStyle = '#8B5E3C';
+    ctx.fillRect(-8, -14, 42, 3);
+    ctx.fillStyle = '#aaa';
+    ctx.beginPath(); ctx.moveTo(34, -17); ctx.lineTo(42, -12); ctx.lineTo(34, -8); ctx.fill();
+
+    ctx.restore();
+    return c;
+}
+
+// ── FP weapon textures: dynamite ──
+function drawWeaponDynamite() {
+    const W = 128, H = 128;
+    const c = createCanvas(W, H);
+    const ctx = c.getContext('2d');
+
+    ctx.save();
+    ctx.translate(W * 0.58, H * 0.75);
+    ctx.rotate(0.3); // slight tilt as if holding it
+
+    // Stick body
+    ctx.fillStyle = '#cc4422';
+    ctx.fillRect(-8, -50, 16, 50);
+    // Top cap
+    ctx.fillStyle = '#aa3311';
+    ctx.fillRect(-8, -50, 16, 10);
+    // Label
+    ctx.fillStyle = '#ffeecc';
+    ctx.fillRect(-6, -38, 12, 10);
+    ctx.fillStyle = '#cc4422';
+    ctx.font = 'bold 7px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('TNT', 0, -31);
+    // Fuse
+    ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -50);
+    ctx.quadraticCurveTo(10, -62, 5, -72);
+    ctx.stroke();
+    // Fuse spark
+    ctx.fillStyle = '#ffcc00';
+    ctx.beginPath(); ctx.arc(5, -72, 2.5, 0, Math.PI * 2); ctx.fill();
+
+    ctx.restore();
+    return c;
+}
+
 const spriteGenerators = {    [T.GOLD]:     drawGold,
     [T.GEM]:      drawGem,
     [T.BAT]:      drawBat,
@@ -847,6 +1011,10 @@ const spriteGenerators = {    [T.GOLD]:     drawGold,
     [T.MINE_LIGHT]:   drawMineLight,
     [T.MINE_CART]:    drawMineCart,
     [T.PICKAXE_DECOR]:drawPickaxeDecor,
+    [T.WARHAMMER]:    drawSpriteWarhammer,
+    [T.CROSSBOW]:     drawSpriteCrossbow,
+    [T.AMMO_BOLT]:    drawSpriteAmmoBolt,
+    [T.AMMO_DYNAMITE]:drawSpriteAmmoDynamite,
 };
 
 export function getSpriteTexture(entityType) {
@@ -996,6 +1164,8 @@ export function getWeaponTexture(weaponId) {
         switch (weaponId) {
             case 'pickaxe':   weaponCache[weaponId] = drawWeaponPickaxe(); break;
             case 'warhammer': weaponCache[weaponId] = drawWeaponWarHammer(); break;
+            case 'crossbow':  weaponCache[weaponId] = drawWeaponCrossbow(); break;
+            case 'dynamite':  weaponCache[weaponId] = drawWeaponDynamite(); break;
             default:          weaponCache[weaponId] = drawWeaponPickaxe();
         }
     }

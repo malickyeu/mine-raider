@@ -1,6 +1,6 @@
 /* ── hud.js ── heads-up display: health, score, minimap, level ── */
 
-import { SCREEN_W, SCREEN_H, MINIMAP_SCALE, MINIMAP_MARGIN, WALL_TYPES, T, ALL_DOOR_TYPES, FOG_REVEAL_RADIUS } from './config.js';
+import { SCREEN_W, SCREEN_H, MINIMAP_SCALE, MINIMAP_MARGIN, WALL_TYPES, T, ALL_DOOR_TYPES, FOG_REVEAL_RADIUS, DYNAMITE_THROW_DURATION } from './config.js';
 import { t } from './i18n.js';
 
 let minimapVisible = true;
@@ -116,17 +116,56 @@ export function drawHUD(ctx, player, mapData, levelInfo, doorStates = {}, entiti
         }
     }
 
-    // ── Flashlight indicator ──
-    if (player.hasFlashlight) {
-        const flx = barX, fly = barY - 46;
-        const isOn = player.flashlightOn;
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
-        ctx.fillRect(flx - 2, fly - 2, 68, 18);
-        ctx.fillStyle = isOn ? '#ffe080' : '#888';
-        ctx.font = '11px monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText(isOn ? '🔦 ON' : '🔦 OFF', flx + 2, fly + 12);
-    }
+     // ── Flashlight indicator ──
+     if (player.hasFlashlight) {
+         const flx = barX, fly = barY - 46;
+         const isOn = player.flashlightOn;
+         ctx.fillStyle = 'rgba(0,0,0,0.55)';
+         ctx.fillRect(flx - 2, fly - 2, 68, 18);
+         ctx.fillStyle = isOn ? '#ffe080' : '#888';
+         ctx.font = '11px monospace';
+         ctx.textAlign = 'left';
+         ctx.fillText(isOn ? '🔦 ON' : '🔦 OFF', flx + 2, fly + 12);
+     }
+
+     // ── Weapon indicator ──
+     if (player.currentWeapon && player.weapons) {
+         const wpx = barX + 90, wpy = barY - 46;
+         const weapon = player.currentWeapon;
+         const weaponIcons = { pickaxe: '⛏️', warhammer: '🔨', crossbow: '🏹', dynamite: '💣' };
+         const icon = weaponIcons[weapon] || '⚔️';
+
+         ctx.fillStyle = 'rgba(0,0,0,0.55)';
+         const ammo = player.weapons[weapon].ammo;
+         const ammoText = ammo >= 0 ? ` (${ammo})` : '';
+         const wtext = `${icon}${ammoText}`;
+         const wtw = ctx.measureText(wtext).width;
+         ctx.fillRect(wpx - 4, wpy - 2, Math.max(60, wtw + 8), 18);
+
+         ctx.fillStyle = weapon === 'pickaxe' ? '#ffd700' : '#f0a040';
+         ctx.font = '11px monospace';
+         ctx.textAlign = 'left';
+         ctx.fillText(wtext, wpx, wpy + 12);
+
+         // ── Dynamite throw charge bar ──
+         if (weapon === 'dynamite' && player.weaponThrowTimer > 0) {
+             const chargeRatio = Math.min(1, player.weaponThrowTimer / DYNAMITE_THROW_DURATION);
+             const cbX = wpx - 4, cbY = wpy + 18;
+             const cbW = Math.max(60, wtw + 8), cbH = 5;
+             ctx.fillStyle = 'rgba(0,0,0,0.7)';
+             ctx.fillRect(cbX, cbY, cbW, cbH);
+             // Colour: yellow → orange → red as charge increases
+             const r = Math.round(255);
+             const g = Math.round(200 * (1 - chargeRatio));
+             ctx.fillStyle = `rgb(${r},${g},0)`;
+             ctx.fillRect(cbX, cbY, cbW * chargeRatio, cbH);
+             // "CHARGE" label
+             ctx.fillStyle = '#fff';
+             ctx.font = '7px monospace';
+             ctx.textAlign = 'left';
+             ctx.fillText('CHARGE', cbX + 2, cbY + cbH - 1);
+         }
+     }
 
     // ── Level indicator (top center) ──
     if (levelInfo) {

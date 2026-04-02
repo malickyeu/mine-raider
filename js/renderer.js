@@ -1,6 +1,6 @@
 /* ── renderer.js ── orchestrates all rendering: ceiling, floor, walls, sprites, HUD ── */
 
-import { SCREEN_W, SCREEN_H, T, FOV, HALF_FOV } from './config.js';
+import { SCREEN_W, SCREEN_H, T, FOV, HALF_FOV, WEAPON_STATS, DYNAMITE_THROW_DURATION } from './config.js';
 import { castRays } from './raycaster.js';
 import { getTexture, getTextureSize, getWeaponTexture } from './textures.js';
 import { renderSprites } from './sprites.js';
@@ -205,29 +205,38 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
         let swingAngle = 0;
         let swingOX = 0, swingOY = 0;
         let swingScale = 1.0;
-        if (player.attackTimer > 0) {
-            const t = 1 - player.attackTimer / 0.4;  // 0 → 1
+
+        // ── Dynamite charge-up: pull back as player winds up throw ──
+        if (weaponId === 'dynamite' && player.weaponThrowTimer > 0) {
+            const charge = Math.min(1, player.weaponThrowTimer / DYNAMITE_THROW_DURATION);
+            swingAngle  = -0.5 * charge;       // tilt back (counter-clockwise)
+            swingOX     = -35 * charge;        // pull left (away from screen centre)
+            swingOY     = -28 * charge;        // pull up (winding arm back)
+            swingScale  = 1.0 + 0.14 * charge; // arm extends slightly
+        } else if (player.attackTimer > 0) {
+            const cooldown = (WEAPON_STATS[weaponId] || WEAPON_STATS.pickaxe).cooldown;
+            const t = 1 - player.attackTimer / cooldown;  // 0 → 1
             if (t < 0.25) {
                 // Wind-up: tilt right & up, shrink slightly (pulling back)
                 const p = t / 0.25;
                 swingAngle = 0.35 * p;
                 swingOX = 20 * p;
                 swingOY = -25 * p;
-                swingScale = 1.0 - 0.06 * p;   // slight shrink (pulling away)
+                swingScale = 1.0 - 0.06 * p;
             } else if (t < 0.55) {
-                // Strike: swing left & down, grow (thrusting forward into scene)
+                // Strike: swing left & down, grow (thrusting forward)
                 const p = (t - 0.25) / 0.3;
                 swingAngle = 0.35 - 0.85 * p;
                 swingOX = 20 - 70 * p;
                 swingOY = -25 + 55 * p;
-                swingScale = 0.94 + 0.18 * p;  // grow past 1.0 → 1.12 (forward lunge)
+                swingScale = 0.94 + 0.18 * p;
             } else {
                 // Recovery: return to rest
                 const p = (t - 0.55) / 0.45;
                 swingAngle = -0.50 * (1 - p);
                 swingOX = -50 * (1 - p);
                 swingOY = 30 * (1 - p);
-                swingScale = 1.12 - 0.12 * p;  // back to 1.0
+                swingScale = 1.12 - 0.12 * p;
             }
         }
 
@@ -237,9 +246,6 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
         ctx.translate(pivotX, pivotY);
         ctx.rotate(swingAngle);
         ctx.scale(swingScale, swingScale);
-        ctx.drawImage(weaponTex, -wW * 0.55, -wH * 0.95, wW, wH);
-        ctx.translate(pivotX, pivotY);
-        ctx.rotate(swingAngle);
         ctx.drawImage(weaponTex, -wW * 0.55, -wH * 0.95, wW, wH);
         ctx.restore();
     }

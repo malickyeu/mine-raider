@@ -64,7 +64,7 @@
 - Zobrazí: název dalšího levelu, skóre za aktuální level, čas průchodu
 - Postupně se odkrývající příběh o záhadách starých dolů (několik řádků textu)
 
-### 15. ⚔️ Systém zbraní (Weapon System)
+- [x] **Systém zbraní** ⚔️ — `WEAPON_STATS` v `config.js`; pickupy `T.WARHAMMER`, `T.CROSSBOW`, `T.AMMO_BOLT`, `T.AMMO_DYNAMITE`; FP weapon textury + švihovací animace (`renderer.js`); přepínání klávesami 1–4; dynamit s nabíjením (hold SPACE) + ukazatel síly hodu v HUD; kuše s hit-scan + LOS kontrolou; kampanové levely 2–5 obsahují weapon pickupy; generátor map também rozmísťuje zbraně a munici
 - **First-person view zbraně** — krumpáč viditelný z pohledu hráče, animace máchnutí při útoku
 - **Krumpáč** (výchozí) — melee, neomezené použití, stávající mechanika
 - **Válečný krumpáč / Kladivo** — silnější melee zbraň (2× damage, pomalejší swing), pickup
@@ -132,8 +132,8 @@ Sprint 2 ✅ (hotovo):
   → #13 Ambientní soundtrack
   → #7  Automap / Fog of War
 
-Sprint 3 (zbraně):
-  → #15 Systém zbraní (first-person view, krumpáč, kladivo, kuše, dynamit)
+Sprint 3 ✅ (hotovo):
+  → #15 Systém zbraní (FP view, krumpáč, kladivo, kuše, dynamit + hod, weapon pickupy v levely + generátoru)
 
 Sprint 4 (nepřátelé & pasti):
   → #16 Ranged nepřátelé (Skeleton Archer, Mine Goblin)

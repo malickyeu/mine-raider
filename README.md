@@ -78,6 +78,7 @@ npm run dev
 | `Shift` | Sprint (1.6× speed, drains stamina) |
 | Mouse | Look around (click canvas to lock pointer) |
 | `Space` | Swing pickaxe — attack enemies, break wood walls |
+| `1` `2` `3` `4` | Switch weapon (Pickaxe / Warhammer / Crossbow / Dynamite) |
 | `F` | Open / close doors (locked doors need matching key) |
 | `L` | Toggle lantern on / off |
 | `M` | Toggle minimap |

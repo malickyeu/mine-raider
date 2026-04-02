@@ -2,7 +2,8 @@
 
 import { T, PLAYER_MAX_HP, PLAYER_SPEED, PLAYER_ROT_SPEED, PLAYER_MOUSE_SENS,
          ENEMY_SPEED, ENEMY_DAMAGE, ENEMY_HIT_INTERVAL,
-         SPRINT_MULT, STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN } from './config.js';
+         SPRINT_MULT, STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN,
+         WEAPON_STATS, DYNAMITE_THROW_DURATION } from './config.js';
 import { isDown, consumeMouseDX } from './input.js';
 import { moveWithCollision } from './collision.js';
 import { isWall } from './map.js';
@@ -24,12 +25,21 @@ export class Player {
         this.sprinting = false;
         this.staminaExhausted = false;
         this.shakeTimer = 0;
-        this.keys = new Set();  // collected key types (T.KEY_RED, T.KEY_BLUE)
-        this.hasFlashlight = false; // true once player picks up the lantern
-        this.flashlightOn = true;   // toggleable on/off (L key)
-        this.lastHitByType = null;  // set by Enemy.update() → read by main.js for sfx
-        this.currentWeapon = 'pickaxe'; // 'pickaxe' | 'warhammer'
-    }
+         this.keys = new Set();  // collected key types (T.KEY_RED, T.KEY_BLUE)
+         this.hasFlashlight = false; // true once player picks up the lantern
+         this.flashlightOn = true;   // toggleable on/off (L key)
+         this.lastHitByType = null;  // set by Enemy.update() → read by main.js for sfx
+         // Weapon system
+         this.currentWeapon = 'pickaxe';
+         this.weapons = {
+             pickaxe:   { owned: true,  ammo: -1 },
+             warhammer: { owned: false, ammo: -1 },
+             crossbow:  { owned: false, ammo: 0  },
+             dynamite:  { owned: false, ammo: 0  },
+         };
+         this.weaponThrowTimer = 0;   // for dynamite wind-up
+         this.lastAttackWeapon = null; // track per-weapon cooldown
+     }
 
     update(dt, mapData, doorStates) {
         // ── Input snapshot (computed once, used by sprint + movement + rotation) ──
@@ -90,15 +100,30 @@ export class Player {
         this.x = result.x;
         this.y = result.y;
 
-        // ── Attack ──
-        if (this.attackTimer > 0) this.attackTimer -= dt;
-        if (this.shakeTimer > 0) this.shakeTimer -= dt;
-        if (isDown('Space') && this.attackTimer <= 0) {
-            this.attacking = true;
-            this.attackTimer = 0.4;
-        } else {
-            this.attacking = false;
-        }
+         // ── Attack ──
+         if (this.attackTimer > 0) this.attackTimer -= dt;
+         if (this.shakeTimer > 0) this.shakeTimer -= dt;
+         
+         const isAttackPressed = isDown('Space');
+         if (isAttackPressed && this.attackTimer <= 0) {
+             // Dynamite: track throw power while held
+             if (this.currentWeapon === 'dynamite') {
+                 this.weaponThrowTimer = Math.min(DYNAMITE_THROW_DURATION, this.weaponThrowTimer + dt);
+                 this.attacking = true;
+             } else {
+                 // Melee/ranged: immediate attack
+                 this.attacking = true;
+                 const stats = WEAPON_STATS[this.currentWeapon];
+                 this.attackTimer = stats.cooldown;
+             }
+         } else if (!isAttackPressed && this.attacking && this.currentWeapon === 'dynamite') {
+             // Dynamite release → trigger throw in main.js
+             const stats = WEAPON_STATS['dynamite'];
+             this.attackTimer = stats.cooldown;
+             this.attacking = false;
+         } else {
+             this.attacking = false;
+         }
     }
 
     takeDamage(amount) {
@@ -345,6 +370,67 @@ export class PickaxeDecor extends Entity {
     }
 }
 
+// ── WeaponPickup ── collectible weapon (warhammer, crossbow)
+export class WeaponPickup extends Entity {
+    constructor(type, x, y) {
+        super(type, x, y);
+        // type: T.WARHAMMER | T.CROSSBOW
+    }
+}
+
+// ── AmmoPickup ── collectible ammunition (bolts, dynamite)
+export class AmmoPickup extends Entity {
+    constructor(type, x, y) {
+        super(type, x, y);
+        // type: T.AMMO_BOLT | T.AMMO_DYNAMITE
+        this.count = type === T.AMMO_BOLT ? 5 : 2; // default stack sizes
+    }
+}
+
+// ── CrossbowBolt ── projectile from crossbow (hit-scan simulation)
+export class CrossbowBolt extends Entity {
+    constructor(x, y, vx, vy) {
+        super(T.AMMO_BOLT, x, y); // temp type for rendering
+        this.vx = vx;
+        this.vy = vy;
+        this.lifespan = 5.0; // sec before despawn
+        this.age = 0;
+    }
+    update(dt) {
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        this.age += dt;
+        if (this.age > this.lifespan) this.alive = false;
+    }
+}
+
+// ── DynamiteThrown ── vhozený dynamit, 2s fuse, explodes
+export class DynamiteThrown extends Entity {
+    constructor(x, y, vx, vy) {
+        super(T.AMMO_DYNAMITE, x, y);
+        this.vx = vx;
+        this.vy = vy;
+        this.vz = 0.3; // upward velocity (gravity simulation)
+        this.gravity = -1.2; // units/s²
+        this.fuseTimer = 2.0; // seconds until explosion
+        this.hasExploded = false;
+        this.bounceCount = 0;
+        this.maxBounces = 2;
+    }
+    update(dt) {
+        this.vz += this.gravity * dt;
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        this.z = Math.max(0, (this.z || 0) + this.vz * dt);
+
+        this.fuseTimer -= dt;
+        if (this.fuseTimer <= 0) {
+            this.hasExploded = true;
+            this.alive = false;
+        }
+    }
+}
+
 /** Create entity instances from extracted entity list */
 export function createEntities(entityList, difficulty = null) {
     const entities = [];
@@ -391,10 +477,18 @@ export function createEntities(entityList, difficulty = null) {
             case T.MINE_CART:
                 entities.push(new MineCart(e.x, e.y));
                 break;
-            case T.PICKAXE_DECOR:
-                entities.push(new PickaxeDecor(e.x, e.y));
-                break;
-        }
-    }
-    return entities;
+             case T.PICKAXE_DECOR:
+                 entities.push(new PickaxeDecor(e.x, e.y));
+                 break;
+             case T.WARHAMMER:
+             case T.CROSSBOW:
+                 entities.push(new WeaponPickup(e.type, e.x, e.y));
+                 break;
+             case T.AMMO_BOLT:
+             case T.AMMO_DYNAMITE:
+                 entities.push(new AmmoPickup(e.type, e.x, e.y));
+                 break;
+         }
+     }
+     return entities;
 }

@@ -30,6 +30,8 @@ const TILE_ICONS = {
     [T.DOOR_BLUE]:    '🔒', [T.FLASHLIGHT]:   '🔦',
     [T.BARREL]:       '🧨', [T.MINE_LIGHT]:   '💡',
     [T.MINE_CART]:    '🛒', [T.PICKAXE_DECOR]:'⛏️',
+    [T.WARHAMMER]:    '🔨', [T.CROSSBOW]:     '🏹',
+    [T.AMMO_BOLT]:    '🎯', [T.AMMO_DYNAMITE]:'💣',
 };
 
 const TILE_GROUPS = [
@@ -38,7 +40,8 @@ const TILE_GROUPS = [
                                        T.DOOR, T.DOOR_RED, T.DOOR_BLUE, T.PILLAR] },
     { key: 'edGroupEquip',    tiles: [T.PLAYER, T.EXIT, T.TORCH, T.MINE_LIGHT] },
     { key: 'edGroupCollect',  tiles: [T.GOLD, T.GEM, T.KEY_RED, T.KEY_BLUE,
-                                       T.FLASHLIGHT, T.HEALTH, T.HEALTH_SMALL] },
+                                       T.FLASHLIGHT, T.HEALTH, T.HEALTH_SMALL,
+                                       T.WARHAMMER, T.CROSSBOW, T.AMMO_BOLT, T.AMMO_DYNAMITE] },
     { key: 'edGroupDecor',    tiles: [T.BARREL, T.MINE_CART, T.PICKAXE_DECOR] },
     { key: 'edGroupEnemies',  tiles: [T.BAT, T.SKELETON, T.SPIDER, T.GHOST] },
 ];

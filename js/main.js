@@ -1,12 +1,12 @@
 /* ── main.js ── game bootstrap, state machine, game loop ── */
 
-import { T, BREAKABLE_TYPES, WALL_HP, DIFFICULTIES, GAME_VERSION, ALL_DOOR_TYPES, WALL_TYPES, LOCKED_DOOR_TYPES, DOOR_KEY_MAP, BARREL_EXPLOSION_RADIUS, BARREL_EXPLOSION_DAMAGE, FOG_REVEAL_RADIUS } from './config.js';
+import { T, BREAKABLE_TYPES, WALL_HP, DIFFICULTIES, GAME_VERSION, ALL_DOOR_TYPES, WALL_TYPES, LOCKED_DOOR_TYPES, DOOR_KEY_MAP, BARREL_EXPLOSION_RADIUS, BARREL_EXPLOSION_DAMAGE, FOG_REVEAL_RADIUS, WEAPON_STATS, DYNAMITE_THROW_DURATION, DYNAMITE_MAX_DISTANCE, DYNAMITE_EXPLOSION_RADIUS, DYNAMITE_EXPLOSION_DAMAGE } from './config.js';
 import { loadMap, extractEntities, getCampaignLevel, getCampaignLength, isWall, getTile } from './map.js';
 import { initInput, releasePointer, isDown } from './input.js';
 import { initRenderer, renderFrame } from './renderer.js';
-import { Player, Enemy, Treasure, HealthPack, SmallHealthPack, Exit, Torch, Pillar, KeyItem, Flashlight, Barrel, MineLight, MineCart, createEntities } from './entities.js';
+import { Player, Enemy, Treasure, HealthPack, SmallHealthPack, Exit, Torch, Pillar, KeyItem, Flashlight, Barrel, MineLight, MineCart, WeaponPickup, AmmoPickup, CrossbowBolt, DynamiteThrown, createEntities } from './entities.js';
 import { initEditor, showEditor, rebuildEditorUI } from './editor.js';
-import { sfxPickup, sfxGem, sfxAttack, sfxDeath, sfxWin, sfxHeal, sfxHit, sfxEnemyDie, sfxEnemyAttack, sfxHitWood, sfxBreakWood, sfxDoorOpen, sfxDoorLocked, sfxKeyPickup, sfxFlashlightPickup, sfxExplosion, startAmbient, stopAmbient, updateAmbient, toggleSfx, isSfxEnabled, toggleAmbient, isAmbientEnabled } from './audio.js';
+import { sfxPickup, sfxGem, sfxAttack, sfxDeath, sfxWin, sfxHeal, sfxHit, sfxEnemyDie, sfxEnemyAttack, sfxHitWood, sfxBreakWood, sfxDoorOpen, sfxDoorLocked, sfxKeyPickup, sfxFlashlightPickup, sfxExplosion, startAmbient, stopAmbient, updateAmbient, toggleSfx, isSfxEnabled, toggleAmbient, isAmbientEnabled, sfxCrossbowShot, sfxDynamiteThrow, sfxDynamiteExplode, sfxWeaponSwitch } from './audio.js';
 import { toggleMinimap, toggleHelp, isHelpVisible, hideHelp } from './hud.js';
 import { t, toggleLang } from './i18n.js';
 import { getHighScore, submitScore, getBestCampaignScore } from './highscore.js';
@@ -198,6 +198,19 @@ let fKeyWasDown = false;
 let lKeyWasDown = false;
 
 window.addEventListener('keydown', e => {
+    // ── Weapon selection (1-4) during game ──
+    if (state === 'game') {
+        const weapons = ['pickaxe', 'warhammer', 'crossbow', 'dynamite'];
+        if (e.key >= '1' && e.key <= '4') {
+            const weaponIdx = parseInt(e.key) - 1;
+            const weapon = weapons[weaponIdx];
+            if (player.weapons[weapon] && player.weapons[weapon].owned) {
+                player.currentWeapon = weapon;
+                sfxWeaponSwitch();
+                e.preventDefault();
+            }
+        }
+    }
     if (e.code === 'Escape' || e.code === 'Backspace') {
         // Don't intercept Backspace inside text inputs (editor)
         if (e.code === 'Backspace' && e.target.tagName === 'INPUT') return;
@@ -402,18 +415,21 @@ function startGame() {
     mapData = JSON.parse(JSON.stringify(rawMap));
     const { entities: entList, playerStart } = extractEntities(mapData);
 
-    const prevScore = (player && gameMode === 'campaign') ? player.score : 0;
-    const prevHp = (player && gameMode === 'campaign') ? player.hp : null;
-    const prevKeys = (player && gameMode === 'campaign') ? new Set(player.keys) : new Set();
-    const prevFlashlight = (player && gameMode === 'campaign') ? player.hasFlashlight : false;
-    const prevFlashlightOn = (player && gameMode === 'campaign') ? player.flashlightOn : true;
+     const prevScore = (player && gameMode === 'campaign') ? player.score : 0;
+     const prevHp = (player && gameMode === 'campaign') ? player.hp : null;
+     const prevKeys = (player && gameMode === 'campaign') ? new Set(player.keys) : new Set();
+     const prevFlashlight = (player && gameMode === 'campaign') ? player.hasFlashlight : false;
+     const prevFlashlightOn = (player && gameMode === 'campaign') ? player.flashlightOn : true;
+     const prevWeapons = (player && gameMode === 'campaign') ? JSON.parse(JSON.stringify(player.weapons)) : null;
+     const prevWeapon  = (player && gameMode === 'campaign') ? player.currentWeapon : 'pickaxe';
 
-    player = new Player(playerStart.x, playerStart.y);
-    player.score = prevScore;
-    if (prevHp !== null) player.hp = prevHp;
-    player.keys = prevKeys;
-    player.hasFlashlight = prevFlashlight; // must find the lantern (campaign level 1 has it)
-    player.flashlightOn = prevFlashlightOn; // default true; carries toggle state across levels
+     player = new Player(playerStart.x, playerStart.y);
+     player.score = prevScore;
+     if (prevHp !== null) player.hp = prevHp;
+     player.keys = prevKeys;
+     player.hasFlashlight = prevFlashlight;
+     player.flashlightOn = prevFlashlightOn;
+     if (prevWeapons) { player.weapons = prevWeapons; player.currentWeapon = prevWeapon; }
 
     entities = createEntities(entList, DIFFICULTIES[selectedDifficulty]);
     breakableWalls = {};
@@ -513,8 +529,92 @@ function triggerBarrelExplosion(barrel, processedBarrels = new Set()) {
         }
     }
 
-    player.addScore(25);
-}
+     player.addScore(25);
+ }
+
+ function throwDynamite(power) {
+     // power: 0..1 (based on hold time)
+     player.weaponThrowTimer = 0; // always reset, even if no ammo
+     if (player.weapons.dynamite.ammo <= 0) return;
+     
+     const cosA = Math.cos(player.angle);
+     const sinA = Math.sin(player.angle);
+     
+     const distance = power * DYNAMITE_MAX_DISTANCE;
+     const vx = cosA * distance * 2;
+     const vy = sinA * distance * 2;
+     
+     const dyn = new DynamiteThrown(player.x + cosA * 0.5, player.y + sinA * 0.5, vx, vy);
+     entities.push(dyn);
+     
+     player.weapons.dynamite.ammo--;
+     sfxDynamiteThrow();
+     player.weaponThrowTimer = 0;
+ }
+
+ function triggerDynamiteExplosion(dyn) {
+     dyn.hasExploded = true;
+     dyn.alive = false;
+     
+     const RADIUS = DYNAMITE_EXPLOSION_RADIUS;
+     const DAMAGE = DYNAMITE_EXPLOSION_DAMAGE;
+     
+     sfxExplosion();
+     
+     // Screen shake
+     const pdx = player.x - dyn.x, pdy = player.y - dyn.y;
+     const pdist = Math.sqrt(pdx * pdx + pdy * pdy);
+     const shakeAmount = Math.max(0.2, 0.6 * Math.max(0, 1 - pdist / (RADIUS * 2)));
+     player.shakeTimer = Math.max(player.shakeTimer, shakeAmount);
+     
+     // Damage player
+     if (pdist < RADIUS) {
+         const dmg = Math.round(DAMAGE * (1 - pdist / RADIUS));
+         player.takeDamage(dmg);
+     }
+     
+     // Damage enemies
+     for (const ent of entities) {
+         if (!(ent instanceof Enemy) || !ent.alive) continue;
+         const edx = ent.x - dyn.x, edy = ent.y - dyn.y;
+         const edist = Math.sqrt(edx * edx + edy * edy);
+         if (edist < RADIUS) {
+             ent.takeDamage();
+             if (!ent.alive) {
+                 sfxEnemyDie(ent.type);
+                 player.addScore(getEnemyScore(ent.type));
+             }
+         }
+     }
+     
+     // Break wood walls in radius
+     const minTX = Math.max(0, Math.floor(dyn.x - RADIUS));
+     const maxTX = Math.min(mapData.width - 1, Math.ceil(dyn.x + RADIUS));
+     const minTY = Math.max(0, Math.floor(dyn.y - RADIUS));
+     const maxTY = Math.min(mapData.height - 1, Math.ceil(dyn.y + RADIUS));
+     for (let ty = minTY; ty <= maxTY; ty++) {
+         for (let tx = minTX; tx <= maxTX; tx++) {
+             const tile = mapData.tiles[ty][tx];
+             if (!BREAKABLE_TYPES.has(tile)) continue;
+             const wdx = (tx + 0.5) - dyn.x, wdy = (ty + 0.5) - dyn.y;
+             if (Math.sqrt(wdx * wdx + wdy * wdy) >= RADIUS) continue;
+             mapData.tiles[ty][tx] = T.EMPTY;
+             delete breakableWalls[`${tx},${ty}`];
+             sfxBreakWood();
+         }
+     }
+     
+     // Trigger nearby barrels
+     for (const ent of entities) {
+         if (!(ent instanceof Barrel) || !ent.alive || ent.exploding) continue;
+         const bdx = ent.x - dyn.x, bdy = ent.y - dyn.y;
+         if (Math.sqrt(bdx * bdx + bdy * bdy) < RADIUS) {
+             triggerBarrelExplosion(ent);
+         }
+     }
+     
+     player.addScore(40);
+ }
 
 function gameLoop(now) {
     if (state !== 'game') return;
@@ -663,76 +763,143 @@ function gameLoop(now) {
             }
         }
 
-        if (player.attacking) {
-            sfxAttack();
-            const cosA = Math.cos(player.angle);
-            const sinA = Math.sin(player.angle);
+         if (player.attacking) {
+             const weapon = player.currentWeapon;
+             const stats = WEAPON_STATS[weapon];
+             
+             if (weapon === 'pickaxe' || weapon === 'warhammer') {
+                 // ── Melee attack ──
+                 sfxAttack();
+                 const cosA = Math.cos(player.angle);
+                 const sinA = Math.sin(player.angle);
+                 const damage = stats.damage;
 
-            // ── Hit enemies & barrels ──
-            for (const ent of entities) {
-                if (!ent.alive) continue;
-                const isEnemy = ent instanceof Enemy;
-                const isBarrel = ent instanceof Barrel && !ent.exploding;
-                if (!isEnemy && !isBarrel) continue;
-                const dx = ent.x - player.x;
-                const dy = ent.y - player.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > 2.0) continue;
-                const dot = (dx * cosA + dy * sinA) / dist;
-                if (dot > 0.7) {
-                    if (isBarrel) {
-                        triggerBarrelExplosion(ent);
-                    } else {
-                        ent.takeDamage();
-                        if (!ent.alive) {
-                            sfxEnemyDie(ent.type);
-                            player.addScore(getEnemyScore(ent.type));
-                        }
-                    }
-                }
-            }
+                 // Hit enemies & barrels
+                 for (const ent of entities) {
+                     if (!ent.alive) continue;
+                     const isEnemy = ent instanceof Enemy;
+                     const isBarrel = ent instanceof Barrel && !ent.exploding;
+                     if (!isEnemy && !isBarrel) continue;
+                     const dx = ent.x - player.x;
+                     const dy = ent.y - player.y;
+                     const dist = Math.sqrt(dx * dx + dy * dy);
+                     if (dist > 2.0) continue;
+                     const dot = (dx * cosA + dy * sinA) / dist;
+                     if (dot > 0.7) {
+                         if (isBarrel) {
+                             triggerBarrelExplosion(ent);
+                         } else {
+                             // Apply weapon damage (pickaxe 1×, warhammer 2×)
+                             for (let i = 0; i < damage; i++) ent.takeDamage();
+                             if (!ent.alive) {
+                                 sfxEnemyDie(ent.type);
+                                 player.addScore(getEnemyScore(ent.type));
+                             }
+                         }
+                     }
+                 }
 
-            // ── Break wood walls ──
-            const ATTACK_RANGE = 1.5;
-            for (let d = 0.25; d <= ATTACK_RANGE; d += 0.15) {
-                const wx = Math.floor(player.x + cosA * d);
-                const wy = Math.floor(player.y + sinA * d);
-                const tile = getTile(mapData, wx, wy);
-                if (BREAKABLE_TYPES.has(tile)) {
-                    // Don't break walls adjacent to doors (structural support)
-                    const adjDoor = ALL_DOOR_TYPES.has(getTile(mapData, wx-1, wy)) ||
-                                    ALL_DOOR_TYPES.has(getTile(mapData, wx+1, wy)) ||
-                                    ALL_DOOR_TYPES.has(getTile(mapData, wx, wy-1)) ||
-                                    ALL_DOOR_TYPES.has(getTile(mapData, wx, wy+1));
-                    if (adjDoor) break;
+                 // Break wood walls
+                 const ATTACK_RANGE = 1.5;
+                 for (let d = 0.25; d <= ATTACK_RANGE; d += 0.15) {
+                     const wx = Math.floor(player.x + cosA * d);
+                     const wy = Math.floor(player.y + sinA * d);
+                     const tile = getTile(mapData, wx, wy);
+                     if (BREAKABLE_TYPES.has(tile)) {
+                         const adjDoor = ALL_DOOR_TYPES.has(getTile(mapData, wx-1, wy)) ||
+                                         ALL_DOOR_TYPES.has(getTile(mapData, wx+1, wy)) ||
+                                         ALL_DOOR_TYPES.has(getTile(mapData, wx, wy-1)) ||
+                                         ALL_DOOR_TYPES.has(getTile(mapData, wx, wy+1));
+                         if (adjDoor) break;
 
-                    const key = `${wx},${wy}`;
-                    if (breakableWalls[key] === undefined) breakableWalls[key] = WALL_HP[tile];
-                    breakableWalls[key]--;
-                    if (breakableWalls[key] <= 0) {
-                        mapData.tiles[wy][wx] = T.EMPTY;
-                        delete breakableWalls[key];
-                        sfxBreakWood();
-                        player.addScore(25);
-                    } else {
-                        sfxHitWood();
-                    }
-                    break; // only one wall per swing
-                } else if (isWall(mapData, wx, wy)) {
-                    break; // solid wall stops ray
-                }
-            }
-        }
+                         const key = `${wx},${wy}`;
+                         if (breakableWalls[key] === undefined) breakableWalls[key] = WALL_HP[tile];
+                         breakableWalls[key]--;
+                         if (breakableWalls[key] <= 0) {
+                             mapData.tiles[wy][wx] = T.EMPTY;
+                             delete breakableWalls[key];
+                             sfxBreakWood();
+                             player.addScore(25);
+                         } else {
+                             sfxHitWood();
+                         }
+                         break;
+                     } else if (isWall(mapData, wx, wy)) {
+                         break;
+                     }
+                 }
+              } else if (weapon === 'crossbow') {
+                 // ── Ranged crossbow attack (hit-scan) ──
+                 if (player.weapons.crossbow.ammo > 0) {
+                     sfxCrossbowShot();
+                     const cosA = Math.cos(player.angle);
+                     const sinA = Math.sin(player.angle);
+                     let hitEnemy = null;
+                     let hitDist = Infinity;
 
-        const hpBefore = player.hp; // snapshot for hit detection
+                     // Ray-cast to find first enemy in line of sight
+                     for (const ent of entities) {
+                         if (!(ent instanceof Enemy) || !ent.alive) continue;
+                         const dx = ent.x - player.x;
+                         const dy = ent.y - player.y;
+                         const dist = Math.sqrt(dx * dx + dy * dy);
+                         if (dist > 12) continue; // max range
 
-        for (const ent of entities) {
-            if (ent instanceof Enemy) ent.update(dt, mapData, player);
-            else if (ent instanceof Torch) ent.update(dt);
-            else if (ent instanceof Flashlight) ent.update(dt);
-            else if (ent instanceof Barrel) ent.update(dt);
-            else if (ent instanceof MineLight) ent.update(dt);
-        }
+                         // Must be in forward cone
+                         const dot = (dx * cosA + dy * sinA) / dist;
+                         if (dot <= 0.3) continue;
+
+                         // Line-of-sight: bolt must not pass through walls
+                         let blocked = false;
+                         const steps = Math.ceil(dist * 3);
+                         for (let si = 1; si < steps; si++) {
+                             const tt = si / steps;
+                             const cx = player.x + dx * tt, cy = player.y + dy * tt;
+                             if (isWall(mapData, Math.floor(cx), Math.floor(cy), doorStates)) {
+                                 blocked = true; break;
+                             }
+                         }
+                         if (blocked) continue;
+
+                         if (dist < hitDist) { hitDist = dist; hitEnemy = ent; }
+                     }
+
+                     if (hitEnemy) {
+                         // Apply damage multiplier (crossbow.damage = 1.5 → 2 hits)
+                         const hits = Math.round(stats.damage);
+                         for (let h = 0; h < hits; h++) hitEnemy.takeDamage();
+                         if (!hitEnemy.alive) {
+                             sfxEnemyDie(hitEnemy.type);
+                             player.addScore(getEnemyScore(hitEnemy.type));
+                         }
+                     }
+
+                     player.weapons.crossbow.ammo--;
+                 }
+             }
+             // Note: dynamite wind-up is handled in entities.js (player.weaponThrowTimer)
+         } // end if (player.attacking)
+
+         const hpBefore = player.hp; // snapshot for hit detection
+
+         // ── Handle dynamite throw on release ──
+         if (!player.attacking && player.weaponThrowTimer > 0 && player.currentWeapon === 'dynamite') {
+             const power = player.weaponThrowTimer / DYNAMITE_THROW_DURATION;
+             throwDynamite(power);
+         }
+
+         for (const ent of entities) {
+             if (ent instanceof Enemy) ent.update(dt, mapData, player);
+             else if (ent instanceof Torch) ent.update(dt);
+             else if (ent instanceof Flashlight) ent.update(dt);
+             else if (ent instanceof Barrel) ent.update(dt);
+             else if (ent instanceof MineLight) ent.update(dt);
+             else if (ent instanceof DynamiteThrown) {
+                 ent.update(dt);
+                 if (ent.hasExploded) triggerDynamiteExplosion(ent);
+             }
+             else if (ent instanceof CrossbowBolt) ent.update(dt);
+         }
 
         // ── Enemy attack SFX: base hit sound + per-type flavour ──
         if (player.hp < hpBefore) {
@@ -756,45 +923,66 @@ function gameLoop(now) {
             }
         }
 
-        for (const ent of entities) {
-            if (!ent.alive) continue;
-            const dx = ent.x - player.x;
-            const dy = ent.y - player.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 0.5) {
-                if (ent instanceof Treasure) {
-                    ent.alive = false;
-                    player.addScore(ent.value);
-                    if (ent.type === T.GEM) sfxGem(); else sfxPickup();
-                } else if (ent instanceof KeyItem) {
-                    ent.alive = false;
-                    player.keys.add(ent.type);
-                    sfxKeyPickup();
-                } else if (ent instanceof Flashlight) {
-                    ent.alive = false;
-                    if (!player.hasFlashlight) {
-                        player.hasFlashlight = true;
-                        player.flashlightOn = true;
-                        sfxFlashlightPickup();
-                    }
-                } else if (ent instanceof HealthPack || ent instanceof SmallHealthPack) {
-                    if (player.hp < player.maxHp) {
-                        ent.alive = false;
-                        player.heal(ent.healAmount);
-                        sfxHeal();
-                    }
-                } else if (ent instanceof Exit) {
-                    if (gameMode === 'campaign') {
-                        currentLevel++;
-                        if (currentLevel >= getCampaignLength()) switchState('win');
-                        else switchState('nextlevel');
-                    } else {
-                        switchState('win');
-                    }
-                    return;
-                }
-            }
-        }
+         for (const ent of entities) {
+             if (!ent.alive) continue;
+             const dx = ent.x - player.x;
+             const dy = ent.y - player.y;
+             const dist = Math.sqrt(dx * dx + dy * dy);
+             if (dist < 0.5) {
+                 if (ent instanceof Treasure) {
+                     ent.alive = false;
+                     player.addScore(ent.value);
+                     if (ent.type === T.GEM) sfxGem(); else sfxPickup();
+                 } else if (ent instanceof KeyItem) {
+                     ent.alive = false;
+                     player.keys.add(ent.type);
+                     sfxKeyPickup();
+                 } else if (ent instanceof Flashlight) {
+                     ent.alive = false;
+                     if (!player.hasFlashlight) {
+                         player.hasFlashlight = true;
+                         player.flashlightOn = true;
+                         sfxFlashlightPickup();
+                     }
+                 } else if (ent instanceof WeaponPickup) {
+                     // Weapon pickup
+                     const weaponMap = { [T.WARHAMMER]: 'warhammer', [T.CROSSBOW]: 'crossbow' };
+                     const weapon = weaponMap[ent.type];
+                     if (weapon && !player.weapons[weapon].owned) {
+                         player.weapons[weapon].owned = true;
+                         ent.alive = false;
+                         sfxPickup();
+                     }
+                 } else if (ent instanceof AmmoPickup) {
+                     // Ammo pickup
+                     const ammoMap = { [T.AMMO_BOLT]: 'crossbow', [T.AMMO_DYNAMITE]: 'dynamite' };
+                     const weapon = ammoMap[ent.type];
+                     if (weapon) {
+                         const ammoCount = ent.type === T.AMMO_BOLT ? 5 : 2;
+                         player.weapons[weapon].ammo += ammoCount;
+                         // Dynamite ammo auto-unlocks the dynamite weapon slot
+                         if (ent.type === T.AMMO_DYNAMITE) player.weapons.dynamite.owned = true;
+                         ent.alive = false;
+                         sfxPickup();
+                     }
+                 } else if (ent instanceof HealthPack || ent instanceof SmallHealthPack) {
+                     if (player.hp < player.maxHp) {
+                         ent.alive = false;
+                         player.heal(ent.healAmount);
+                         sfxHeal();
+                     }
+                 } else if (ent instanceof Exit) {
+                     if (gameMode === 'campaign') {
+                         currentLevel++;
+                         if (currentLevel >= getCampaignLength()) switchState('win');
+                         else switchState('nextlevel');
+                     } else {
+                         switchState('win');
+                     }
+                     return;
+                 }
+             }
+         }
 
         if (!player.alive) { switchState('gameover'); return; }
 

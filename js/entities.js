@@ -295,8 +295,8 @@ export class Enemy extends Entity {
         return true;
     }
 
-    takeDamage() {
-        this.hp--;
+    takeDamage(amount = 1) {
+        this.hp -= amount;
         this.hurtTimer = 0.15;
         if (this.hp <= 0) {
             this.alive = false;
@@ -387,13 +387,13 @@ export class AmmoPickup extends Entity {
     }
 }
 
-// ── CrossbowBolt ── projectile from crossbow (hit-scan simulation)
+// ── CrossbowBolt ── visual-only projectile (hit-scan already handled damage)
 export class CrossbowBolt extends Entity {
     constructor(x, y, vx, vy) {
-        super(T.AMMO_BOLT, x, y); // temp type for rendering
+        super(T.BOLT_PROJECTILE, x, y);
         this.vx = vx;
         this.vy = vy;
-        this.lifespan = 5.0; // sec before despawn
+        this.lifespan = 0.6; // sec — enough to cross visible area
         this.age = 0;
     }
     update(dt) {
@@ -401,6 +401,16 @@ export class CrossbowBolt extends Entity {
         this.y += this.vy * dt;
         this.age += dt;
         if (this.age > this.lifespan) this.alive = false;
+    }
+}
+
+// ── ExplosionFX ── purely visual explosion sprite; extends Barrel so it reuses
+//   Barrel.update() lifecycle and the sprites.js explosion-texture path.
+export class ExplosionFX extends Barrel {
+    constructor(x, y) {
+        super(x, y);
+        this.exploding    = true;
+        this.explodeTimer = 0.5;  // visible for half a second
     }
 }
 

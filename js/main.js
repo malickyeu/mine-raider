@@ -4,7 +4,7 @@ import { T, BREAKABLE_TYPES, WALL_HP, DIFFICULTIES, GAME_VERSION, ALL_DOOR_TYPES
 import { loadMap, extractEntities, getCampaignLevel, getCampaignLength, isWall, getTile } from './map.js';
 import { initInput, releasePointer, isDown } from './input.js';
 import { initRenderer, renderFrame } from './renderer.js';
-import { Player, Enemy, Treasure, HealthPack, SmallHealthPack, Exit, Torch, Pillar, KeyItem, Flashlight, Barrel, MineLight, MineCart, WeaponPickup, AmmoPickup, CrossbowBolt, DynamiteThrown, createEntities } from './entities.js';
+import { Player, Enemy, Treasure, HealthPack, SmallHealthPack, Exit, Torch, Pillar, KeyItem, Flashlight, Barrel, MineLight, MineCart, WeaponPickup, AmmoPickup, CrossbowBolt, DynamiteThrown, ExplosionFX, createEntities } from './entities.js';
 import { initEditor, showEditor, rebuildEditorUI } from './editor.js';
 import { sfxPickup, sfxGem, sfxAttack, sfxDeath, sfxWin, sfxHeal, sfxHit, sfxEnemyDie, sfxEnemyAttack, sfxHitWood, sfxBreakWood, sfxDoorOpen, sfxDoorLocked, sfxKeyPickup, sfxFlashlightPickup, sfxExplosion, startAmbient, stopAmbient, updateAmbient, toggleSfx, isSfxEnabled, toggleAmbient, isAmbientEnabled, sfxCrossbowShot, sfxDynamiteThrow, sfxDynamiteExplode, sfxWeaponSwitch } from './audio.js';
 import { toggleMinimap, toggleHelp, isHelpVisible, hideHelp } from './hud.js';
@@ -204,7 +204,9 @@ window.addEventListener('keydown', e => {
         if (e.key >= '1' && e.key <= '4') {
             const weaponIdx = parseInt(e.key) - 1;
             const weapon = weapons[weaponIdx];
-            if (player.weapons[weapon] && player.weapons[weapon].owned) {
+            const w = player.weapons[weapon];
+            // Only switch if owned AND has ammo (or unlimited ammo)
+            if (w && w.owned && (w.ammo === -1 || w.ammo > 0)) {
                 player.currentWeapon = weapon;
                 sfxWeaponSwitch();
                 e.preventDefault();
@@ -482,19 +484,20 @@ function triggerBarrelExplosion(barrel, processedBarrels = new Set()) {
         player.takeDamage(dmg);
     }
 
-    // Damage enemies
-    for (const ent of entities) {
-        if (!(ent instanceof Enemy) || !ent.alive) continue;
-        const edx = ent.x - barrel.x, edy = ent.y - barrel.y;
-        const edist = Math.sqrt(edx * edx + edy * edy);
-        if (edist < RADIUS) {
-            ent.takeDamage();
-            if (!ent.alive) {
-                sfxEnemyDie(ent.type);
-                player.addScore(getEnemyScore(ent.type));
-            }
-        }
-    }
+     // Damage enemies
+     for (const ent of entities) {
+         if (!(ent instanceof Enemy) || !ent.alive) continue;
+         const edx = ent.x - barrel.x, edy = ent.y - barrel.y;
+         const edist = Math.sqrt(edx * edx + edy * edy);
+         if (edist < RADIUS) {
+             const dmg = Math.max(1, Math.round(DAMAGE * (1 - edist / RADIUS)));
+             ent.takeDamage(dmg);
+             if (!ent.alive) {
+                 sfxEnemyDie(ent.type);
+                 player.addScore(getEnemyScore(ent.type));
+             }
+         }
+     }
 
     // Break wood walls in radius
     const minTX = Math.max(0, Math.floor(barrel.x - RADIUS));
@@ -519,24 +522,30 @@ function triggerBarrelExplosion(barrel, processedBarrels = new Set()) {
         }
     }
 
-    // Chain explosions to nearby barrels
-    for (const ent of entities) {
-        if (!(ent instanceof Barrel) || !ent.alive || ent.exploding) continue;
-        if (processedBarrels.has(ent)) continue;
-        const bdx = ent.x - barrel.x, bdy = ent.y - barrel.y;
-        if (Math.sqrt(bdx * bdx + bdy * bdy) < RADIUS) {
-            triggerBarrelExplosion(ent, processedBarrels);
-        }
-    }
+     // Chain explosions to nearby barrels
+     for (const ent of entities) {
+         if (!(ent instanceof Barrel) || !ent.alive || ent.exploding) continue;
+         if (processedBarrels.has(ent)) continue;
+         const bdx = ent.x - barrel.x, bdy = ent.y - barrel.y;
+         if (Math.sqrt(bdx * bdx + bdy * bdy) < RADIUS) {
+             triggerBarrelExplosion(ent, processedBarrels);
+         }
+     }
+
+     // Extra explosion FX (barrel already shows its own exploding sprite,
+     // but add a secondary flash for impact)
+     entities.push(new ExplosionFX(barrel.x, barrel.y));
 
      player.addScore(25);
  }
 
  function throwDynamite(power) {
-     // power: 0..1 (based on hold time)
      player.weaponThrowTimer = 0; // always reset, even if no ammo
-     if (player.weapons.dynamite.ammo <= 0) return;
-     
+     if (player.weapons.dynamite.ammo <= 0) {
+         autoSwitchWeapon();
+         return;
+     }
+
      const cosA = Math.cos(player.angle);
      const sinA = Math.sin(player.angle);
      
@@ -550,9 +559,25 @@ function triggerBarrelExplosion(barrel, processedBarrels = new Set()) {
      player.weapons.dynamite.ammo--;
      sfxDynamiteThrow();
      player.weaponThrowTimer = 0;
+     if (player.weapons.dynamite.ammo <= 0) autoSwitchWeapon();
+ }
+
+ /** Switch to best available weapon when current runs out of ammo */
+ function autoSwitchWeapon() {
+     const priority = ['crossbow', 'warhammer', 'pickaxe'];
+     for (const id of priority) {
+         const w = player.weapons[id];
+         if (w && w.owned && (w.ammo === -1 || w.ammo > 0)) {
+             player.currentWeapon = id;
+             return;
+         }
+     }
+     player.currentWeapon = 'pickaxe'; // fallback
  }
 
  function triggerDynamiteExplosion(dyn) {
+     if (dyn.explosionTriggered) return;   // ← guard: only explode once
+     dyn.explosionTriggered = true;
      dyn.hasExploded = true;
      dyn.alive = false;
      
@@ -579,7 +604,8 @@ function triggerBarrelExplosion(barrel, processedBarrels = new Set()) {
          const edx = ent.x - dyn.x, edy = ent.y - dyn.y;
          const edist = Math.sqrt(edx * edx + edy * edy);
          if (edist < RADIUS) {
-             ent.takeDamage();
+             const dmg = Math.max(1, Math.round(DAMAGE * (1 - edist / RADIUS)));
+             ent.takeDamage(dmg);
              if (!ent.alive) {
                  sfxEnemyDie(ent.type);
                  player.addScore(getEnemyScore(ent.type));
@@ -612,6 +638,9 @@ function triggerBarrelExplosion(barrel, processedBarrels = new Set()) {
              triggerBarrelExplosion(ent);
          }
      }
+     
+     // Spawn visual explosion effect
+     entities.push(new ExplosionFX(dyn.x, dyn.y));
      
      player.addScore(40);
  }
@@ -828,55 +857,67 @@ function gameLoop(now) {
                          break;
                      }
                  }
-              } else if (weapon === 'crossbow') {
-                 // ── Ranged crossbow attack (hit-scan) ──
-                 if (player.weapons.crossbow.ammo > 0) {
-                     sfxCrossbowShot();
-                     const cosA = Math.cos(player.angle);
-                     const sinA = Math.sin(player.angle);
-                     let hitEnemy = null;
-                     let hitDist = Infinity;
+               } else if (weapon === 'crossbow') {
+                  // ── Ranged crossbow attack (hit-scan) ──
+                  if (player.weapons.crossbow.ammo > 0) {
+                      sfxCrossbowShot();
+                      const cosA = Math.cos(player.angle);
+                      const sinA = Math.sin(player.angle);
+                      let hitEnemy = null;
+                      let hitDist = Infinity;
 
-                     // Ray-cast to find first enemy in line of sight
-                     for (const ent of entities) {
-                         if (!(ent instanceof Enemy) || !ent.alive) continue;
-                         const dx = ent.x - player.x;
-                         const dy = ent.y - player.y;
-                         const dist = Math.sqrt(dx * dx + dy * dy);
-                         if (dist > 12) continue; // max range
+                      // Ray-cast to find first enemy in line of sight
+                      for (const ent of entities) {
+                          if (!(ent instanceof Enemy) || !ent.alive) continue;
+                          const dx = ent.x - player.x;
+                          const dy = ent.y - player.y;
+                          const dist = Math.sqrt(dx * dx + dy * dy);
+                          if (dist > 12) continue; // max range
 
-                         // Must be in forward cone
-                         const dot = (dx * cosA + dy * sinA) / dist;
-                         if (dot <= 0.3) continue;
+                          // Must be in forward cone
+                          const dot = (dx * cosA + dy * sinA) / dist;
+                          if (dot <= 0.3) continue;
 
-                         // Line-of-sight: bolt must not pass through walls
-                         let blocked = false;
-                         const steps = Math.ceil(dist * 3);
-                         for (let si = 1; si < steps; si++) {
-                             const tt = si / steps;
-                             const cx = player.x + dx * tt, cy = player.y + dy * tt;
-                             if (isWall(mapData, Math.floor(cx), Math.floor(cy), doorStates)) {
-                                 blocked = true; break;
-                             }
-                         }
-                         if (blocked) continue;
+                          // Line-of-sight: bolt must not pass through walls
+                          let blocked = false;
+                          const steps = Math.ceil(dist * 3);
+                          for (let si = 1; si < steps; si++) {
+                              const tt = si / steps;
+                              const cx = player.x + dx * tt, cy = player.y + dy * tt;
+                              if (isWall(mapData, Math.floor(cx), Math.floor(cy), doorStates)) {
+                                  blocked = true; break;
+                              }
+                          }
+                          if (blocked) continue;
 
-                         if (dist < hitDist) { hitDist = dist; hitEnemy = ent; }
-                     }
+                          if (dist < hitDist) { hitDist = dist; hitEnemy = ent; }
+                      }
 
-                     if (hitEnemy) {
-                         // Apply damage multiplier (crossbow.damage = 1.5 → 2 hits)
-                         const hits = Math.round(stats.damage);
-                         for (let h = 0; h < hits; h++) hitEnemy.takeDamage();
-                         if (!hitEnemy.alive) {
-                             sfxEnemyDie(hitEnemy.type);
-                             player.addScore(getEnemyScore(hitEnemy.type));
-                         }
-                     }
+                      if (hitEnemy) {
+                          // Apply damage multiplier (crossbow.damage = 1.5 → 2 hits)
+                          const hits = Math.round(stats.damage);
+                          for (let h = 0; h < hits; h++) hitEnemy.takeDamage();
+                          if (!hitEnemy.alive) {
+                              sfxEnemyDie(hitEnemy.type);
+                              player.addScore(getEnemyScore(hitEnemy.type));
+                          }
+                      }
 
-                     player.weapons.crossbow.ammo--;
-                 }
-             }
+                      // Spawn visual bolt from crossbow barrel center (no lateral offset
+                      // since the FP crossbow is now centered at screen centre)
+                      const boltSpeed = 14;
+                      const bolt = new CrossbowBolt(
+                          player.x + cosA * 1.2,
+                          player.y + sinA * 1.2,
+                          cosA * boltSpeed,
+                          sinA * boltSpeed
+                      );
+                      entities.push(bolt);
+
+                      player.weapons.crossbow.ammo--;
+                      if (player.weapons.crossbow.ammo <= 0) autoSwitchWeapon();
+                  }
+              }
              // Note: dynamite wind-up is handled in entities.js (player.weaponThrowTimer)
          } // end if (player.attacking)
 
@@ -895,10 +936,51 @@ function gameLoop(now) {
              else if (ent instanceof Barrel) ent.update(dt);
              else if (ent instanceof MineLight) ent.update(dt);
              else if (ent instanceof DynamiteThrown) {
-                 ent.update(dt);
-                 if (ent.hasExploded) triggerDynamiteExplosion(ent);
+                 if (ent.alive) {
+                     ent.update(dt);
+                     // Wall collision → explode immediately
+                     if (ent.alive && isWall(mapData, Math.floor(ent.x), Math.floor(ent.y), doorStates)) {
+                         ent.hasExploded = true;
+                         ent.alive = false;
+                     }
+                     // Enemy proximity → explode immediately
+                     if (ent.alive) {
+                         for (const other of entities) {
+                             if (!(other instanceof Enemy) || !other.alive) continue;
+                             const ddx = other.x - ent.x, ddy = other.y - ent.y;
+                             if (ddx * ddx + ddy * ddy < 0.36) { // 0.6 tile radius
+                                 ent.hasExploded = true;
+                                 ent.alive = false;
+                                 break;
+                             }
+                         }
+                     }
+                 }
+                 if (ent.hasExploded && !ent.explosionTriggered) {
+                     triggerDynamiteExplosion(ent);
+                 }
              }
-             else if (ent instanceof CrossbowBolt) ent.update(dt);
+             else if (ent instanceof CrossbowBolt) {
+                 if (ent.alive) {
+                     ent.update(dt);
+                     // Die on wall hit
+                     if (ent.alive && isWall(mapData, Math.floor(ent.x), Math.floor(ent.y), doorStates)) {
+                         ent.alive = false;
+                     }
+                     // Die on enemy hit
+                     if (ent.alive) {
+                         for (const other of entities) {
+                             if (!(other instanceof Enemy) || !other.alive) continue;
+                             const ddx = other.x - ent.x, ddy = other.y - ent.y;
+                             if (ddx * ddx + ddy * ddy < 0.25) { // 0.5-tile hit radius
+                                 ent.alive = false;
+                                 break;
+                             }
+                         }
+                     }
+                 }
+             }
+             else if (ent instanceof ExplosionFX) ent.update(dt);
          }
 
         // ── Enemy attack SFX: base hit sound + per-type flavour ──
@@ -945,11 +1027,19 @@ function gameLoop(now) {
                          sfxFlashlightPickup();
                      }
                  } else if (ent instanceof WeaponPickup) {
-                     // Weapon pickup
                      const weaponMap = { [T.WARHAMMER]: 'warhammer', [T.CROSSBOW]: 'crossbow' };
                      const weapon = weaponMap[ent.type];
-                     if (weapon && !player.weapons[weapon].owned) {
-                         player.weapons[weapon].owned = true;
+                     if (weapon) {
+                         if (!player.weapons[weapon].owned) {
+                             // First pickup: unlock + auto-equip
+                             player.weapons[weapon].owned = true;
+                             if (weapon === 'crossbow') player.weapons.crossbow.ammo = Math.max(player.weapons.crossbow.ammo, 5);
+                             player.currentWeapon = weapon;
+                         } else if (weapon === 'crossbow') {
+                             // Already have it: pick up for +5 bolts
+                             player.weapons.crossbow.ammo += 5;
+                         }
+                         // Warhammer: no ammo to give — just pick up (already owned = noop)
                          ent.alive = false;
                          sfxPickup();
                      }

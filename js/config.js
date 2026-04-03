@@ -72,6 +72,7 @@ export const T = {
     CROSSBOW:     33, // crossbow weapon pickup (ranged)
     AMMO_BOLT:    34, // crossbow bolt ammo pickup
     AMMO_DYNAMITE:35, // dynamite ammo pickup
+    BOLT_PROJECTILE: 36, // runtime-only: visual flying bolt (not in ENTITY_TYPES / map editor)
 };
 
 export const WALL_TYPES = new Set([T.STONE, T.WOOD, T.ORE, T.MOSSY, T.CRYSTAL, T.IRON, T.DOOR, T.DOOR_RED, T.DOOR_BLUE]);

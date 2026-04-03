@@ -196,6 +196,14 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
         let baseX = SCREEN_W * 0.52;
         let baseY = SCREEN_H - wH * 0.85;
 
+        // ── Crossbow: re-center so bolt tip lands at screen center ──
+        // Canvas pixel (64,0) = bolt tip → screen (baseX+(64/128)*wW, baseY) = screen center
+        // Solving: baseX = 320 - (64/128)*wW = 320 - wW/2
+        if (weaponId === 'crossbow') {
+            baseX = SCREEN_W * 0.5 - wW * 0.5;  // barrel center at screen centre-X
+            baseY = 180;                          // barrel tip slightly above screen-centre-Y
+        }
+
         // Idle bob (subtle, synced to player walk)
         baseX += Math.sin(player.bobPhase * 0.5) * 3;
         baseY += Math.abs(Math.sin(player.bobPhase)) * 4;
@@ -213,6 +221,29 @@ export function renderFrame(mapData, player, entities, levelInfo, breakableWalls
             swingOX     = -35 * charge;        // pull left (away from screen centre)
             swingOY     = -28 * charge;        // pull up (winding arm back)
             swingScale  = 1.0 + 0.14 * charge; // arm extends slightly
+        } else if (weaponId === 'crossbow' && player.attackTimer > 0) {
+            // ── Crossbow: quick forward push + recoil (no melee swing) ──
+            const cooldown = WEAPON_STATS.crossbow.cooldown;
+            const t = 1 - player.attackTimer / cooldown;
+            if (t < 0.15) {
+                const p = t / 0.15;
+                swingAngle = 0;
+                swingOX    =  14 * p;   // slight forward punch
+                swingOY    = -10 * p;
+                swingScale = 1.0 + 0.12 * p;
+            } else if (t < 0.50) {
+                const p = (t - 0.15) / 0.35;
+                swingAngle = -0.07 * p;
+                swingOX    =  14 - 22 * p;   // recoil back
+                swingOY    = -10 + 14 * p;
+                swingScale = 1.12 - 0.12 * p;
+            } else {
+                const p = (t - 0.50) / 0.50;
+                swingAngle = -0.07 * (1 - p);
+                swingOX    = -8 * (1 - p);
+                swingOY    =  4 * (1 - p);
+                swingScale = 1.0;
+            }
         } else if (player.attackTimer > 0) {
             const cooldown = (WEAPON_STATS[weaponId] || WEAPON_STATS.pickaxe).cooldown;
             const t = 1 - player.attackTimer / cooldown;  // 0 → 1

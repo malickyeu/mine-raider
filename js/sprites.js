@@ -3,6 +3,25 @@
 import { SCREEN_W, SCREEN_H, FOV, T } from './config.js';
 import { getSpriteTexture, getPillarTexture, getExplosionTexture } from './textures.js';
 
+// Scale factors for collectibles / small decorations (enemies/pillars/carts = 1.0)
+const SPRITE_SCALE = {
+    [T.GOLD]:          0.55,
+    [T.GEM]:           0.55,
+    [T.HEALTH]:        0.65,
+    [T.HEALTH_SMALL]:  0.58,
+    [T.KEY_RED]:       0.50,
+    [T.KEY_BLUE]:      0.50,
+    [T.FLASHLIGHT]:    0.60,
+    [T.WARHAMMER]:     0.65,
+    [T.CROSSBOW]:      0.65,
+    [T.AMMO_BOLT]:     0.52,
+    [T.AMMO_DYNAMITE]: 0.58,
+    [T.TORCH]:         0.72,
+    [T.MINE_LIGHT]:    0.68,
+    [T.PICKAXE_DECOR]: 0.80,
+    [T.BOLT_PROJECTILE]: 0.22, // tiny flying bolt
+};
+
 /**
  * Render all visible entity sprites.
  * @param {CanvasRenderingContext2D} ctx
@@ -44,9 +63,14 @@ export function renderSprites(ctx, entities, player, depthBuffer, lightingState 
         // Screen X
         const screenX = (SCREEN_W / 2) * (1 + ty / (tx * planeDist));
 
-        // Sprite height on screen
-        const spriteH = Math.min(SCREEN_H * 1.5, SCREEN_H / tx);
+        // Sprite height on screen — collectibles are scaled down
+        const fullH  = Math.min(SCREEN_H * 1.5, SCREEN_H / tx);
+        const scale  = SPRITE_SCALE[ent.type] || 1.0;
+        const spriteH = fullH * scale;
         const spriteW = spriteH;
+
+        // Collectibles sit slightly lower (towards floor) so they don't float at eye level
+        const vShift = scale < 1.0 ? (fullH - spriteH) * 0.4 : 0;
 
         const drawX = screenX - spriteW / 2;
 
@@ -92,10 +116,10 @@ export function renderSprites(ctx, entities, player, depthBuffer, lightingState 
         const tex = isExploding ? getExplosionTexture()
                   : ent.type === T.PILLAR ? getPillarTexture()
                   : getSpriteTexture(ent.type);
-        // Pillars and mine carts render at full wall height; other sprites are square
+        // Pillars and mine carts render at full wall height; other sprites use their scale
         const tallSprite = ent.type === T.PILLAR || ent.type === T.MINE_CART;
-        const spriteH2 = tallSprite ? SCREEN_H / tx : spriteH;
-        const drawY2   = (SCREEN_H - spriteH2) / 2;
+        const spriteH2 = tallSprite ? fullH : spriteH;
+        const drawY2   = (SCREEN_H - spriteH2) / 2 + (tallSprite ? 0 : vShift);
         const startCol = Math.max(0, Math.floor(drawX));
         const endCol = Math.min(SCREEN_W - 1, Math.floor(drawX + spriteW));
 

@@ -913,44 +913,75 @@ function drawSpriteAmmoDynamite() {
     return c;
 }
 
-// ── FP weapon textures: crossbow ──
+// ── FP weapon textures: crossbow (first-person aimed-forward view) ──
 function drawWeaponCrossbow() {
     const W = 128, H = 128;
     const c = createCanvas(W, H);
     const ctx = c.getContext('2d');
 
     ctx.save();
-    ctx.translate(W * 0.5, H * 0.78);
+    ctx.translate(W * 0.5, H * 0.92); // anchor bottom-center
 
-    // Stock (lower body)
+    // ── Stock — foreshortened trapezoid (wider near player) ──
     ctx.fillStyle = '#7a5230';
-    ctx.fillRect(-8, -10, 50, 14);
+    ctx.beginPath();
+    ctx.moveTo(-16, 0);
+    ctx.lineTo( 16, 0);
+    ctx.lineTo(  9, -56);
+    ctx.lineTo( -9, -56);
+    ctx.fill();
     // Wood grain
     ctx.strokeStyle = 'rgba(50,30,10,0.4)'; ctx.lineWidth = 0.8;
-    for (let i = 0; i < 4; i++) {
-        ctx.beginPath(); ctx.moveTo(-6, -8 + i * 3); ctx.lineTo(40, -7 + i * 3); ctx.stroke();
+    for (let i = 1; i <= 3; i++) {
+        const y = -i * 14; const hw = 16 - i * 2;
+        ctx.beginPath(); ctx.moveTo(-hw, y); ctx.lineTo(hw, y); ctx.stroke();
     }
 
-    // Trigger guard
-    ctx.fillStyle = '#555';
-    ctx.fillRect(10, -10, 3, 18);
+    // ── Grip / forestock ──
+    ctx.fillStyle = '#5C3A1E';
+    ctx.fillRect(-14, -14, 28, 16);
+    ctx.fillStyle = '#4a2c10';
+    for (let i = 0; i < 3; i++) ctx.fillRect(-15, -12 + i * 4, 30, 2.5);
 
-    // Bow limbs (perpendicular to stock)
+    // ── Trigger ──
+    ctx.fillStyle = '#444';
+    ctx.fillRect(-3, -24, 6, 8);
+    ctx.strokeStyle = '#444'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0, -20, 5, 0, Math.PI); ctx.stroke();
+
+    // ── Bow arms (horizontal wings near far end) ──
     ctx.fillStyle = '#5a3a10';
-    ctx.fillRect(-14, -38, 7, 60);  // top limb
-    // String
-    ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1.5;
+    ctx.fillRect(-50, -50, 40, 8); // left arm
+    ctx.fillRect(  10, -50, 40, 8); // right arm
+    ctx.fillStyle = '#3a2a05';
+    ctx.fillRect(-52, -50, 5, 8);   // left tip
+    ctx.fillRect( 47, -50, 5, 8);   // right tip
+
+    // ── Bowstring ──
+    ctx.strokeStyle = '#d8d8c8'; ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(-10, -38);
-    ctx.lineTo(-5, -16);
-    ctx.lineTo(-10, 22);
+    ctx.moveTo(-50, -46);
+    ctx.lineTo(  0, -42);
+    ctx.lineTo( 50, -46);
     ctx.stroke();
 
-    // Bolt on track
-    ctx.fillStyle = '#8B5E3C';
-    ctx.fillRect(-8, -14, 42, 3);
-    ctx.fillStyle = '#aaa';
-    ctx.beginPath(); ctx.moveTo(34, -17); ctx.lineTo(42, -12); ctx.lineTo(34, -8); ctx.fill();
+    // ── Bolt track (centre rail) ──
+    ctx.fillStyle = '#8B6633';
+    ctx.fillRect(-2.5, -58, 5, 40);
+
+    // ── Loaded bolt ──
+    ctx.fillStyle = '#8B5E3C'; // shaft
+    ctx.fillRect(-1.5, -60, 3, 28);
+    ctx.fillStyle = '#cccccc'; // tip
+    ctx.beginPath();
+    ctx.moveTo(-3.5, -58); ctx.lineTo(3.5, -58); ctx.lineTo(0, -68);
+    ctx.fill();
+    ctx.fillStyle = '#eeeeee'; // tip shine
+    ctx.beginPath(); ctx.moveTo(-1, -62); ctx.lineTo(1, -62); ctx.lineTo(0, -68); ctx.fill();
+    // Fletching
+    ctx.fillStyle = '#cc9944';
+    ctx.beginPath(); ctx.moveTo(-1.5, -35); ctx.lineTo(-6, -30); ctx.lineTo(-1.5, -30); ctx.fill();
+    ctx.beginPath(); ctx.moveTo( 1.5, -35); ctx.lineTo( 6, -30); ctx.lineTo( 1.5, -30); ctx.fill();
 
     ctx.restore();
     return c;
@@ -993,6 +1024,28 @@ function drawWeaponDynamite() {
     return c;
 }
 
+// ── Flying bolt projectile sprite (billboard, runtime-only) ──
+function drawBoltProjectile() {
+    const c = createCanvas(16, 16);
+    const ctx = c.getContext('2d');
+    // Subtle glow halo
+    ctx.fillStyle = 'rgba(200,220,255,0.35)';
+    ctx.beginPath(); ctx.arc(8, 7, 5, 0, Math.PI * 2); ctx.fill();
+    // Arrowhead tip (top)
+    ctx.fillStyle = '#dddddd';
+    ctx.beginPath();
+    ctx.moveTo(8, 1); ctx.lineTo(12, 7); ctx.lineTo(8, 6); ctx.lineTo(4, 7);
+    ctx.fill();
+    // Shaft
+    ctx.fillStyle = '#8B5E3C';
+    ctx.fillRect(7, 6, 2, 7);
+    // Fletching
+    ctx.fillStyle = '#cc9944';
+    ctx.beginPath(); ctx.moveTo(7, 12); ctx.lineTo(3, 15); ctx.lineTo(7, 14); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(9, 12); ctx.lineTo(13, 15); ctx.lineTo(9, 14); ctx.fill();
+    return c;
+}
+
 const spriteGenerators = {    [T.GOLD]:     drawGold,
     [T.GEM]:      drawGem,
     [T.BAT]:      drawBat,
@@ -1015,6 +1068,7 @@ const spriteGenerators = {    [T.GOLD]:     drawGold,
     [T.CROSSBOW]:     drawSpriteCrossbow,
     [T.AMMO_BOLT]:    drawSpriteAmmoBolt,
     [T.AMMO_DYNAMITE]:drawSpriteAmmoDynamite,
+    [T.BOLT_PROJECTILE]: drawBoltProjectile,
 };
 
 export function getSpriteTexture(entityType) {
@@ -1132,9 +1186,10 @@ function drawWeaponWarHammer() {
     }
     ctx.restore();
 
-    // Hammer head — massive block
+    // Hammer head — placed at the true tip of the handle
+    // Handle origin=(W*0.60,H*0.92), rot=-0.55, length=95 → tip≈(W*0.21, H*0.29)
     ctx.save();
-    ctx.translate(W * 0.34, H * 0.24);
+    ctx.translate(W * 0.21, H * 0.29);
     ctx.rotate(-0.55);
 
     // Main block

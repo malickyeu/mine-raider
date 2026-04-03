@@ -128,42 +128,67 @@ export function drawHUD(ctx, player, mapData, levelInfo, doorStates = {}, entiti
          ctx.fillText(isOn ? '🔦 ON' : '🔦 OFF', flx + 2, fly + 12);
      }
 
-     // ── Weapon indicator ──
-     if (player.currentWeapon && player.weapons) {
-         const wpx = barX + 90, wpy = barY - 46;
-         const weapon = player.currentWeapon;
-         const weaponIcons = { pickaxe: '⛏️', warhammer: '🔨', crossbow: '🏹', dynamite: '💣' };
-         const icon = weaponIcons[weapon] || '⚔️';
+     // ── Weapon bar (bottom-right) ──
+     if (player.weapons) {
+         const wDefs = [
+             { id: 'pickaxe',   icon: '⛏️', key: '1' },
+             { id: 'warhammer', icon: '🔨', key: '2' },
+             { id: 'crossbow',  icon: '🏹', key: '3' },
+             { id: 'dynamite',  icon: '💣', key: '4' },
+         ];
+         const owned = wDefs.filter(w => player.weapons[w.id]?.owned);
+         if (owned.length > 0) {
+             const sW = 46, sH = 32, gap = 3;
+             const totalW = owned.length * (sW + gap) - gap;
+             const bX = SCREEN_W - totalW - 14;
+             const bY = SCREEN_H - 50;
 
-         ctx.fillStyle = 'rgba(0,0,0,0.55)';
-         const ammo = player.weapons[weapon].ammo;
-         const ammoText = ammo >= 0 ? ` (${ammo})` : '';
-         const wtext = `${icon}${ammoText}`;
-         const wtw = ctx.measureText(wtext).width;
-         ctx.fillRect(wpx - 4, wpy - 2, Math.max(60, wtw + 8), 18);
+             owned.forEach((w, i) => {
+                 const isCurr = player.currentWeapon === w.id;
+                 const sx = bX + i * (sW + gap);
+                 // Background
+                 ctx.fillStyle = isCurr ? 'rgba(255,200,50,0.28)' : 'rgba(0,0,0,0.65)';
+                 ctx.fillRect(sx, bY, sW, sH);
+                 // Border
+                 ctx.strokeStyle = isCurr ? '#ffd700' : 'rgba(255,255,255,0.18)';
+                 ctx.lineWidth = isCurr ? 2 : 1;
+                 ctx.strokeRect(sx, bY, sW, sH);
+                 // Key number (top-left)
+                 ctx.fillStyle = isCurr ? '#ffd700' : '#666';
+                 ctx.font = '8px monospace';
+                 ctx.textAlign = 'left';
+                 ctx.fillText(w.key, sx + 3, bY + 9);
+                 // Weapon icon (centre)
+                 ctx.font = '14px monospace';
+                 ctx.textAlign = 'center';
+                 ctx.fillStyle = '#fff';
+                 ctx.fillText(w.icon, sx + sW * 0.5, bY + 22);
+                 // Ammo (bottom-right)
+                 const ammo = player.weapons[w.id].ammo;
+                 const noAmmo = ammo === 0;
+                 ctx.fillStyle = noAmmo ? '#cc4444' : (isCurr ? '#fff' : '#999');
+                 ctx.font = 'bold 8px monospace';
+                 ctx.textAlign = 'right';
+                 ctx.fillText(ammo < 0 ? '∞' : `${ammo}`, sx + sW - 3, bY + sH - 3);
+             });
 
-         ctx.fillStyle = weapon === 'pickaxe' ? '#ffd700' : '#f0a040';
-         ctx.font = '11px monospace';
-         ctx.textAlign = 'left';
-         ctx.fillText(wtext, wpx, wpy + 12);
-
-         // ── Dynamite throw charge bar ──
-         if (weapon === 'dynamite' && player.weaponThrowTimer > 0) {
-             const chargeRatio = Math.min(1, player.weaponThrowTimer / DYNAMITE_THROW_DURATION);
-             const cbX = wpx - 4, cbY = wpy + 18;
-             const cbW = Math.max(60, wtw + 8), cbH = 5;
-             ctx.fillStyle = 'rgba(0,0,0,0.7)';
-             ctx.fillRect(cbX, cbY, cbW, cbH);
-             // Colour: yellow → orange → red as charge increases
-             const r = Math.round(255);
-             const g = Math.round(200 * (1 - chargeRatio));
-             ctx.fillStyle = `rgb(${r},${g},0)`;
-             ctx.fillRect(cbX, cbY, cbW * chargeRatio, cbH);
-             // "CHARGE" label
-             ctx.fillStyle = '#fff';
-             ctx.font = '7px monospace';
-             ctx.textAlign = 'left';
-             ctx.fillText('CHARGE', cbX + 2, cbY + cbH - 1);
+             // Dynamite charge bar above its slot
+             if (player.currentWeapon === 'dynamite' && player.weaponThrowTimer > 0) {
+                 const dynIdx = owned.findIndex(w => w.id === 'dynamite');
+                 if (dynIdx >= 0) {
+                     const charge = Math.min(1, player.weaponThrowTimer / DYNAMITE_THROW_DURATION);
+                     const sx = bX + dynIdx * (sW + gap);
+                     ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                     ctx.fillRect(sx, bY - 9, sW, 6);
+                     const g = Math.round(200 * (1 - charge));
+                     ctx.fillStyle = `rgb(255,${g},0)`;
+                     ctx.fillRect(sx, bY - 9, sW * charge, 6);
+                     ctx.fillStyle = '#fff';
+                     ctx.font = '7px monospace';
+                     ctx.textAlign = 'left';
+                     ctx.fillText('PWR', sx + 2, bY - 4);
+                 }
+             }
          }
      }
 
